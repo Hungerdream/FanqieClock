@@ -1,0 +1,340 @@
+/* Global Styles - Minimalist Light Theme */
+QMainWindow {
+    background-color: #FFFFFF;
+}
+
+QWidget {
+    color: #1A1A1A;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+/* Sidebar Styles */
+#Sidebar {
+    background-color: #F8F8F8;
+    border-right: 1px solid #EEEEEE;
+    /* Width is now handled in Python for animation */
+}
+
+.SidebarButton {
+    background-color: transparent;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 8px 10px;
+    font-size: 26px;
+    color: #999999;
+    font-family: "Segoe UI Symbol", "Segoe UI Emoji"; /* Ensure icons render well */
+}
+
+.SidebarButton:hover {
+    color: #333333;
+    background-color: #EEEEEE;
+}
+
+.SidebarButton[active="true"] {
+    color: #000000;
+    background-color: #EEEEEE;
+    border-left: 4px solid #000000;
+}
+
+/* Page Transition */
+QStackedWidget {
+    background-color: transparent;
+}
+
+/* Timer Page Styles - Reference Style */
+#TimerLabel {
+    font-size: 180px;
+    font-weight: 900;
+    color: #000000;
+    background-color: transparent;
+    margin: 20px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#ModeLabel {
+    font-size: 14px;
+    color: #666666;
+    margin-bottom: 5px;
+}
+
+#TimerContainer {
+    background-color: #FFFFFF;
+}
+
+/* Bottom Info Bar */
+#InfoBar {
+    margin-top: 50px;
+}
+
+.InfoLabel {
+    font-size: 12px;
+    color: #999999;
+}
+
+.InfoLabelActive {
+    font-size: 12px;
+    color: #333333;
+    font-weight: bold;
+}
+
+/* Kanban Styles */
+.KanbanColumn {
+    background-color: #F8F9FA;
+    border-radius: 15px;
+    border: 1px solid #F0F0F0;
+}
+
+.KanbanTitle {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333333;
+    margin-bottom: 15px;
+    padding-left: 5px;
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+
+.KanbanList {
+    background-color: transparent;
+    border: none;
+    outline: none;
+}
+
+.KanbanList::item {
+    background-color: #FFFFFF;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #EEEEEE;
+    padding: 10px;
+}
+
+.KanbanList::item:hover {
+    border-color: #CCCCCC;
+    background-color: #FDFDFD;
+}
+
+.KanbanList::item:selected {
+    background-color: #F5F5F5;
+    border-color: #000000;
+    color: #000000;
+}
+
+#KanbanItemLabel {
+    font-size: 15px;
+    color: #333333;
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+
+/* Stats Page Styles */
+.StatCard {
+    background-color: #FFFFFF;
+    border-radius: 20px;
+    padding: 25px;
+    margin: 10px;
+    border: 1px solid #EEEEEE;
+}
+
+.StatValue {
+    font-size: 32px;
+    font-weight: bold;
+    color: #000000;
+}
+
+.StatLabel {
+    font-size: 14px;
+    color: #999999;
+    margin-top: 5px;
+}
+
+/* Notes Page Styles */
+#NotesTable {
+    background-color: transparent;
+    border: none;
+    gridline-color: #EEEEEE;
+    font-size: 15px;
+}
+
+#NotesTable::item {
+    padding: 15px;
+    border-bottom: 1px solid #EEEEEE;
+}
+
+#NotesTable::item:selected {
+    background-color: #F5F5F5;
+    color: #000000;
+}
+
+/* Button Styles */
+QPushButton {
+    background-color: #F5F5F5;
+    border: 1px solid #EEEEEE;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-size: 15px;
+    color: #333333;
+}
+
+QPushButton:hover {
+    background-color: #EEEEEE;
+    border-color: #CCCCCC;
+}
+
+QPushButton:pressed {
+    background-color: #DDDDDD;
+}
+
+.DeleteButton {
+    background-color: #FFF0F0;
+    border: 1px solid #FFEEEE;
+    color: #FF5252;
+    font-size: 13px;
+    padding: 5px;
+}
+
+.DeleteButton:hover {
+    background-color: #FF5252;
+    color: #FFFFFF;
+    border-color: #FF5252;
+}
+
+#PrimaryButton {
+    background-color: #000000;
+    color: #FFFFFF;
+    border: none;
+    font-weight: bold;
+    border-radius: 25px; /* Pill shape */
+}
+
+#PrimaryButton:hover {
+    background-color: #333333;
+}
+
+QLineEdit, QTextEdit {
+    border: 1px solid #EEEEEE;
+    border-radius: 10px;
+    padding: 12px;
+    background-color: #F9F9F9;
+    selection-background-color: #DDDDDD;
+    selection-color: #000000;
+}
+
+QLineEdit:focus, QTextEdit:focus {
+    border-color: #000000;
+    background-color: #FFFFFF;
+}
+
+/* Floating Window Styles */
+#FloatingContainer {
+    background-color: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 18px;
+}
+
+/* Circle Control Buttons (Black with White Icon) */
+.CircleControlBtn {
+    background-color: #000000;
+    border: none;
+    font-size: 18px;
+    color: #FFFFFF;
+    border-radius: 22px; /* Fits 45px circle */
+}
+
+.CircleControlBtn:hover {
+    background-color: #333333;
+}
+
+.CircleControlBtn:pressed {
+    background-color: #555555;
+}
+
+/* Secondary Control Buttons (Stop, Skip) */
+.SecondaryControlBtn {
+    background-color: #F5F5F5;
+    border: none;
+    font-size: 14px;
+    color: #333333;
+    border-radius: 16px; /* For 32px circle */
+}
+
+.SecondaryControlBtn:hover {
+    background-color: #EEEEEE;
+    border: 1px solid #E0E0E0;
+}
+
+.SecondaryControlBtn:pressed {
+    background-color: #DDDDDD;
+}
+
+.CircleControlBtnMain {
+    background-color: #000000;
+    border: none;
+    font-size: 28px; /* Larger icon */
+    color: #FFFFFF;
+    border-radius: 32px; /* For 64px circle */
+}
+
+.CircleControlBtnMain:hover {
+    background-color: #333333;
+    font-size: 30px; /* Slight zoom effect */
+}
+
+.CircleControlBtnMain:pressed {
+    background-color: #555555;
+}
+
+/* Specific styling for Stop/Skip if they need to be different, 
+   but user asked for "like first two images", Image 2 has black circles */
+#FloatingStop, #FloatingSkip {
+    background-color: #F5F5F5;
+    color: #333333;
+}
+
+#FloatingStop:hover, #FloatingSkip:hover {
+    background-color: #EEEEEE;
+}
+
+#FloatingPlay {
+    background-color: #000000;
+    color: #FFFFFF;
+    font-size: 20px;
+}
+
+#FloatingPlay:hover {
+    background-color: #333333;
+}
+
+.FloatingLabel {
+    color: #999;
+    font-weight: normal;
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+/* Big SpinBox for Settings */
+.BigSpinBox {
+    border: 1px solid #E0E0E0;
+    background-color: #FAFAFA;
+    font-size: 20px;
+    font-weight: bold;
+    color: #333333;
+    min-width: 140px;
+    padding: 8px 10px;
+    border-radius: 8px;
+}
+
+.BigSpinBox::up-button, .BigSpinBox::down-button {
+    width: 24px;
+    border: none;
+    background: #EEE;
+    border-radius: 4px;
+    margin: 2px;
+}
+
+.BigSpinBox::up-button:hover, .BigSpinBox::down-button:hover {
+    background: #DDD;
+}
+
+.BigSpinBox:hover {
+    background-color: #F9F9F9;
+    border-radius: 5px;
+}
