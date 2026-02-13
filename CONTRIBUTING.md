@@ -1,41 +1,41 @@
-# Contributing to 番茄钟
+# 贡献指南
 
-We love your input! We want to make contributing to 番茄钟 as easy and transparent as possible, whether it's:
+我们非常期待你的参与！我们希望让为番茄钟做贡献变得尽可能简单和透明，无论是：
 
-- Reporting a bug
-- Discussing the current state of the code
-- Submitting a fix
-- Proposing new features
-- Becoming a maintainer
+- 报告错误 (Bug)
+- 讨论代码现状
+- 提交修复
+- 提出新功能建议
+- 成为维护者
 
-## We Develop with Github
+## 我们使用 GitHub 进行开发
 
-We use github to host code, to track issues and feature requests, and to accept pull requests.
+我们使用 GitHub 托管代码、追踪问题和功能请求，以及接收拉取请求（Pull Requests）。
 
-## Pull Requests
+## 拉取请求 (Pull Requests)
 
-1. Fork the repo and create your branch from `main`.
-2. If you've added code that should be tested, add tests.
-3. Ensure the test suite passes.
-4. Make sure your code lints.
-5. Issue that pull request!
+1. Fork 本仓库并从 `main` 分支创建你的分支。
+2. 如果你添加了需要测试的代码，请添加测试用例。
+3. 确保测试套件通过。
+4. 确保你的代码符合代码规范。
+5. 提交 Pull Request！
 
-## Any contributions you make will be under the MIT Software License
+## 你的贡献将遵循 MIT 软件许可证
 
-In short, when you submit code changes, your submissions are understood to be under the same [MIT License](LICENSE) that covers the project. Feel free to contact the maintainers if that's a concern.
+简而言之，当你提交代码更改时，你的提交将被视为遵循本项目的 [MIT 许可证](LICENSE)。如果有任何疑虑，请随时联系维护者。
 
-## Report bugs using Github's [issue tracker](https://github.com/yourusername/fanqie-clock/issues)
+## 使用 GitHub 的 [Issue Tracker](https://github.com/yourusername/fanqie-clock/issues) 报告错误
 
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](); it's that easy!
+我们使用 GitHub Issues 来追踪公共错误。报告错误只需[新建一个 Issue](); 非常简单！
 
-## Write bug reports with detail, background, and sample code
+## 编写包含详细信息、背景和示例代码的错误报告
 
-**Great Bug Reports** tend to have:
+**优秀的错误报告** 通常包含：
 
-- A quick summary and/or background
-- Steps to reproduce
-  - Be specific!
-  - Give sample code if you can.
-- What you expected would happen
-- What actually happened
-- Notes (possibly including why you think this might be happening, or stuff you tried that didn't work)
+- 快速摘要和/或背景信息
+- 复现步骤
+  - 具体一点！
+  - 如果可以，提供示例代码。
+- 你期望发生的事情
+- 实际发生的事情
+- 备注（可能包括你认为发生这种情况的原因，或者你尝试过但无效的方法）

@@ -1,24 +1,24 @@
-# Changelog
+# 更新日志
 
-All notable changes to this project will be documented in this file.
+本项目的所有重要更改都将记录在此文件中。
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
+并且本项目遵循 [语义化版本控制 (Semantic Versioning)](https://semver.org/lang/zh-CN/spec/v2.0.0.html)。
 
-## [Unreleased]
+## [未发布]
 
-### Added
-- Standardized directory structure (src, tests, docs).
-- GitHub Actions CI workflow.
-- Documentation (README, CONTRIBUTING, LICENSE).
+### 新增
+- 标准化目录结构 (src, tests, docs)。
+- GitHub Actions CI 工作流。
+- 文档 (README, CONTRIBUTING, LICENSE)。
 
-### Changed
-- Moved source code to `src/`.
-- Updated project root hygiene.
+### 变更
+- 将源代码移动到 `src/` 目录。
+- 更新了项目根目录卫生。
 
 ## [0.1.0] - 2026-02-14
-### Added
-- Initial release of 番茄钟.
-- Pomodoro timer functionality.
-- Kanban task board.
-- Statistics and reporting.
+### 新增
+- 番茄钟初始版本发布。
+- 番茄计时器功能。
+- 看板任务板。
+- 统计和报告功能。
