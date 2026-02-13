@@ -12,6 +12,24 @@ from logic.timer import PomodoroTimer
 from logic.data_manager import DataManager
 from logic.quote_worker import QuoteWorker
 from ui.widgets import CircularProgressBar, KanbanItemWidget, KanbanList, LongBreakOverlay, SmoothButton, NumberControl
+import sys, os
+
+def get_resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    if hasattr(sys, 'frozen'):
+        # PyInstaller
+        if hasattr(sys, '_MEIPASS'):
+            # OneFile mode
+            base_path = sys._MEIPASS
+        else:
+            # OneDir mode
+            base_path = os.path.dirname(sys.executable)
+            if os.path.exists(os.path.join(base_path, "_internal")):
+                base_path = os.path.join(base_path, "_internal")
+    else:
+        # Dev mode: src/ui/main_window.py -> src
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 class MainWindow(QMainWindow):
     switch_to_compact = pyqtSignal()
@@ -91,12 +109,13 @@ class MainWindow(QMainWindow):
         self.sidebar_hover_timer.start() # Always run, check logic inside
         
         self.nav_btns = []
+        
         nav_items = [
-            ("src/resources/icon_focus.svg", "专注"),
-            ("src/resources/icon_tasks.svg", "任务"),
-            ("src/resources/icon_notes.svg", "笔记"),
-            ("src/resources/icon_stats.svg", "统计"),
-            ("src/resources/icon_settings.svg", "设置")
+            (get_resource_path("resources/icon_focus.svg"), "专注"),
+            (get_resource_path("resources/icon_tasks.svg"), "任务"),
+            (get_resource_path("resources/icon_notes.svg"), "笔记"),
+            (get_resource_path("resources/icon_stats.svg"), "统计"),
+            (get_resource_path("resources/icon_settings.svg"), "设置")
         ]
         
         for i, (icon_path, label) in enumerate(nav_items):
@@ -715,24 +734,25 @@ class MainWindow(QMainWindow):
         sound_label = QLabel("提示音")
         sound_label.setStyleSheet("font-size: 16px; color: #333; font-weight: bold;")
         self.sound_toggle = QCheckBox("开启结束提示音")
-        self.sound_toggle.setStyleSheet("""
-            QCheckBox { font-size: 15px; color: #555; spacing: 8px; }
-            QCheckBox::indicator { width: 22px; height: 22px; border-radius: 6px; border: 1px solid #CCC; }
-            QCheckBox::indicator:checked { background-color: #000000; border-color: #000000; image: url(resources/icon_check.svg); }
+        icon_check_path = get_resource_path("resources/icon_check.svg").replace("\\", "/")
+        self.sound_toggle.setStyleSheet(f"""
+            QCheckBox {{ font-size: 15px; color: #555; spacing: 8px; }}
+            QCheckBox::indicator {{ width: 22px; height: 22px; border-radius: 6px; border: 1px solid #CCC; }}
+            QCheckBox::indicator:checked {{ background-color: #000000; border-color: #000000; image: url('{icon_check_path}'); }}
         """)
         self.sound_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         
         container_layout.addWidget(sound_label, 2, 0)
         container_layout.addWidget(self.sound_toggle, 2, 1, Qt.AlignmentFlag.AlignLeft)
-
+        
         # Row 4: Auto-hide Sidebar Toggle
         sidebar_behavior_label = QLabel("行为")
         sidebar_behavior_label.setStyleSheet("font-size: 16px; color: #333; font-weight: bold;")
         self.auto_hide_sidebar_toggle = QCheckBox("番茄钟开始时自动隐藏侧边栏")
-        self.auto_hide_sidebar_toggle.setStyleSheet("""
-            QCheckBox { font-size: 15px; color: #555; spacing: 8px; }
-            QCheckBox::indicator { width: 22px; height: 22px; border-radius: 6px; border: 1px solid #CCC; }
-            QCheckBox::indicator:checked { background-color: #000000; border-color: #000000; image: url(resources/icon_check.svg); }
+        self.auto_hide_sidebar_toggle.setStyleSheet(f"""
+            QCheckBox {{ font-size: 15px; color: #555; spacing: 8px; }}
+            QCheckBox::indicator {{ width: 22px; height: 22px; border-radius: 6px; border: 1px solid #CCC; }}
+            QCheckBox::indicator:checked {{ background-color: #000000; border-color: #000000; image: url('{icon_check_path}'); }}
         """)
         self.auto_hide_sidebar_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         

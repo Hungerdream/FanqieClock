@@ -10,10 +10,18 @@ from ui.floating_window import FloatingWindow
 
 def get_resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
+    if hasattr(sys, 'frozen'):
+        # PyInstaller
+        if hasattr(sys, '_MEIPASS'):
+            # OneFile mode
+            base_path = sys._MEIPASS
+        else:
+            # OneDir mode
+            base_path = os.path.dirname(sys.executable)
+            if os.path.exists(os.path.join(base_path, "_internal")):
+                base_path = os.path.join(base_path, "_internal")
+    else:
+        # Dev mode: src/main.py -> src
         base_path = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base_path, relative_path)
 

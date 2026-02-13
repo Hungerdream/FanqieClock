@@ -2,6 +2,20 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushBut
                              QListWidget, QListWidgetItem, QAbstractItemView)
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QRectF, pyqtProperty, QPointF
 from PyQt6.QtGui import QColor, QFont, QIcon, QPainter, QPen, QPainterPath
+import sys, os
+
+def get_resource_path(relative_path):
+    if hasattr(sys, 'frozen'):
+        if hasattr(sys, '_MEIPASS'):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.dirname(sys.executable)
+            if os.path.exists(os.path.join(base_path, "_internal")):
+                base_path = os.path.join(base_path, "_internal")
+    else:
+        # src/ui/widgets.py -> src
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 class SmoothButton(QPushButton):
     """
@@ -175,7 +189,7 @@ class KanbanItemWidget(QWidget):
         
         self.focus_btn = QPushButton()
         self.focus_btn.setFixedSize(30, 30)
-        self.focus_btn.setIcon(QIcon("src/resources/icon_item_focus.svg"))
+        self.focus_btn.setIcon(QIcon(get_resource_path("resources/icon_item_focus.svg")))
         self.focus_btn.setIconSize(QSize(24, 24))
         self.focus_btn.setToolTip("开始专注此任务")
         self.focus_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -193,7 +207,7 @@ class KanbanItemWidget(QWidget):
         
         self.delete_btn = QPushButton()
         self.delete_btn.setFixedSize(30, 30)
-        self.delete_btn.setIcon(QIcon("src/resources/icon_item_delete.svg"))
+        self.delete_btn.setIcon(QIcon(get_resource_path("resources/icon_item_delete.svg")))
         self.delete_btn.setIconSize(QSize(20, 20))
         self.delete_btn.setToolTip("删除任务")
         self.delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
