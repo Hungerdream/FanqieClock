@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QPropertyAnimation, QEasingCurve, QSequentialAnimationGroup, QParallelAnimationGroup, QSize
 from PyQt6.QtGui import QIcon
 from logic.timer import PomodoroTimer
+from ui.widgets import get_resource_path
 
 class FloatingWindow(QWidget):
     switch_to_main = pyqtSignal()
@@ -49,7 +50,7 @@ class FloatingWindow(QWidget):
         self.mode_text.setStyleSheet("color: #666; font-size: 11px; margin-left: 5px;")
         
         self.return_btn = QPushButton()
-        self.return_btn.setIcon(QIcon("src/resources/icon_restore.svg"))
+        self.return_btn.setIcon(QIcon(get_resource_path("resources/icon_restore.svg")))
         self.return_btn.setIconSize(QSize(18, 18))
         self.return_btn.setProperty("class", "FloatingControlBtn")
         self.return_btn.setFixedSize(28, 28)
@@ -77,9 +78,9 @@ class FloatingWindow(QWidget):
         controls_layout.setSpacing(10)
         
         # Create control items (Icon + Text)
-        self.stop_btn = self.create_control_btn("src/resources/icon_stop.svg", "重置", "FloatingStop")
-        self.play_btn = self.create_control_btn("src/resources/icon_play.svg", "开始", "FloatingPlay")
-        self.skip_btn = self.create_control_btn("src/resources/icon_skip.svg", "跳过", "FloatingSkip")
+        self.stop_btn = self.create_control_btn(get_resource_path("resources/icon_stop.svg"), "重置", "FloatingStop")
+        self.play_btn = self.create_control_btn(get_resource_path("resources/icon_play.svg"), "开始", "FloatingPlay")
+        self.skip_btn = self.create_control_btn(get_resource_path("resources/icon_skip.svg"), "跳过", "FloatingSkip")
         
         controls_layout.addWidget(self.stop_btn)
         controls_layout.addWidget(self.play_btn)
@@ -137,11 +138,11 @@ class FloatingWindow(QWidget):
     def toggle_timer(self):
         if self.timer.is_running:
             self.timer.pause()
-            self.play_btn.setIcon(QIcon("src/resources/icon_play.svg"))
+            self.play_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
             self.play_btn.setToolTip("开始")
         else:
             self.timer.start()
-            self.play_btn.setIcon(QIcon("src/resources/icon_pause.svg"))
+            self.play_btn.setIcon(QIcon(get_resource_path("resources/icon_pause.svg")))
             self.play_btn.setToolTip("暂停")
         
         # Simple scale animation for feedback
