@@ -1,10 +1,21 @@
 from PyQt6.QtCore import QThread, pyqtSignal
-import requests
+import logging
+
+# Defensive import for requests
+try:
+    import requests
+except ImportError:
+    requests = None
+    logging.error("Failed to import 'requests' module. Network features will be disabled.")
 
 class QuoteWorker(QThread):
     quote_fetched = pyqtSignal(str, str) # content, author
 
     def run(self):
+        if requests is None:
+            self.quote_fetched.emit("生活原本沉闷，但跑起来就有风。", "—— 佚名")
+            return
+
         try:
             # Hitokoto API (c=d for literature, c=i for poetry/inspiration, c=k for philosophy)
             response = requests.get("https://v1.hitokoto.cn/?c=i&c=d&c=k", timeout=5)

@@ -1,39 +1,49 @@
 @echo off
-echo Building 番茄钟 (FanqieClock)...
+chcp 65001 >nul
+echo Building FanqieClock...
 
 :: Ensure PyInstaller is installed
-pip show pyinstaller >nul 2>&1
+echo Checking and installing dependencies...
+python -m pip install -r requirements.txt
 if %errorlevel% neq 0 (
-    echo Installing PyInstaller...
-    pip install pyinstaller
+    echo Failed to install dependencies!
+    pause
+    exit /b %errorlevel%
+)
+
+:: Check dependencies
+python check_deps.py
+if %errorlevel% neq 0 (
+    echo Dependency check failed!
+    pause
+    exit /b %errorlevel%
 )
 
 :: Clean previous build
 if exist build rmdir /s /q build
 if exist dist rmdir /s /q dist
-if exist *.spec del /q *.spec
 
 :: Build Command
-:: --noconfirm: overwrite output directory
-:: --windowed: no console window
-:: --onedir: folder output (faster startup than onefile)
-:: --icon: set exe icon
-:: --add-data: include resources and styles
-:: --name: exe name
-
-echo Running PyInstaller...
-pyinstaller --noconfirm --windowed --onedir ^
-    --name "FanqieClock" ^
-    --icon "src/resources/icon.ico" ^
-    --add-data "src/resources;resources" ^
-    --add-data "src/styles;styles" ^
-    --hidden-import "PyQt6" ^
-    --hidden-import "logic" ^
-    --hidden-import "ui" ^
-    src/main.py
+echo Running PyInstaller with spec file...
+if not exist FanqieClock.spec (
+    echo Generating spec file...
+    python -m PyInstaller --noconfirm --windowed --onedir --log-level WARN ^
+        --name "FanqieClock" ^
+        --icon "src\resources\icon.ico" ^
+        --paths "src" ^
+        --add-data "src/resources;resources" ^
+        --add-data "src/styles;styles" ^
+        --hidden-import "PyQt6" ^
+        --hidden-import "PyQt6.QtSvg" ^
+        --hidden-import "requests" ^
+        src/main.py
+) else (
+    python -m PyInstaller --noconfirm --log-level WARN FanqieClock.spec > build.log 2>&1
+)
 
 if %errorlevel% neq 0 (
-    echo Build failed!
+    echo Build failed! See build.log for details.
+    type build.log
     pause
     exit /b %errorlevel%
 )
@@ -45,4 +55,4 @@ if exist dist\FanqieClock\FanqieClock.exe (
 ) else (
     echo WARNING: Executable not found in expected location!
 )
-:: pause
+pause

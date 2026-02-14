@@ -10,8 +10,6 @@ def get_resource_path(relative_path):
             base_path = sys._MEIPASS
         else:
             base_path = os.path.dirname(sys.executable)
-            if os.path.exists(os.path.join(base_path, "_internal")):
-                base_path = os.path.join(base_path, "_internal")
     else:
         # src/ui/widgets.py -> src
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -324,7 +322,7 @@ class NumberControl(QWidget):
         
         # Minus Button
         self.minus_btn = QPushButton()
-        self.minus_btn.setIcon(QIcon("src/resources/icon_minus.svg"))
+        self.minus_btn.setIcon(QIcon(get_resource_path("resources/icon_minus.svg")))
         self.minus_btn.setIconSize(QSize(18, 18))
         self.minus_btn.setFixedSize(36, 36)
         self.minus_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -352,7 +350,7 @@ class NumberControl(QWidget):
         
         # Plus Button
         self.plus_btn = QPushButton()
-        self.plus_btn.setIcon(QIcon("src/resources/icon_plus.svg"))
+        self.plus_btn.setIcon(QIcon(get_resource_path("resources/icon_plus.svg")))
         self.plus_btn.setIconSize(QSize(18, 18))
         self.plus_btn.setFixedSize(36, 36)
         self.plus_btn.setCursor(Qt.CursorShape.PointingHandCursor)

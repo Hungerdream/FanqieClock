@@ -24,8 +24,6 @@ def get_resource_path(relative_path):
         else:
             # OneDir mode
             base_path = os.path.dirname(sys.executable)
-            if os.path.exists(os.path.join(base_path, "_internal")):
-                base_path = os.path.join(base_path, "_internal")
     else:
         # Dev mode: src/ui/main_window.py -> src
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -234,8 +232,8 @@ class MainWindow(QMainWindow):
         # Header Icons including Compact Mode
         # (key, tooltip, icon_path)
         header_btns_data = [
-            ("compact", "切换小窗模式", "src/resources/icon_compact.svg"),
-            ("theme", "深色模式", "src/resources/icon_theme.svg")
+            ("compact", "切换小窗模式", get_resource_path("resources/icon_compact.svg")),
+            ("theme", "深色模式", get_resource_path("resources/icon_theme.svg"))
         ]
 
         for key, tooltip, icon_path in header_btns_data:
@@ -335,7 +333,7 @@ class MainWindow(QMainWindow):
         
         # Stop Button
         self.stop_btn = SmoothButton()
-        self.stop_btn.setIcon(QIcon("src/resources/icon_stop.svg"))
+        self.stop_btn.setIcon(QIcon(get_resource_path("resources/icon_stop.svg")))
         self.stop_btn.setIconSize(QSize(24, 24))
         self.stop_btn.setFixedSize(50, 50)
         # Use methods instead of property for SmoothButton
@@ -346,7 +344,7 @@ class MainWindow(QMainWindow):
         
         # Play/Pause Button
         self.start_btn = SmoothButton()
-        self.start_btn.setIcon(QIcon("src/resources/icon_play.svg"))
+        self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
         self.start_btn.setIconSize(QSize(32, 32))
         self.start_btn.setFixedSize(72, 72)
         # Main button style
@@ -356,7 +354,7 @@ class MainWindow(QMainWindow):
         
         # Abandon Button
         self.abandon_btn = SmoothButton()
-        self.abandon_btn.setIcon(QIcon("src/resources/icon_abandon.svg"))
+        self.abandon_btn.setIcon(QIcon(get_resource_path("resources/icon_abandon.svg")))
         self.abandon_btn.setIconSize(QSize(24, 24))
         self.abandon_btn.setFixedSize(50, 50)
         self.abandon_btn.set_colors("#000000", "#333333", "#555555")
@@ -835,7 +833,7 @@ class MainWindow(QMainWindow):
         qr_label.setFixedSize(250, 250)
         
         # Try to load image
-        pixmap = QPixmap("src/resources/赞赏码.jpg")
+        pixmap = QPixmap(get_resource_path("resources/赞赏码.jpg"))
         if not pixmap.isNull():
             qr_label.setPixmap(pixmap.scaled(250, 250, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
         else:
@@ -1006,17 +1004,17 @@ class MainWindow(QMainWindow):
 
     def stop_timer(self):
         self.timer.reset()
-        self.start_btn.setIcon(QIcon("src/resources/icon_play.svg")) # Reset start button icon
+        self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg"))) # Reset start button icon
         if self.auto_hide_sidebar_toggle.isChecked():
             self.animate_sidebar(85)
 
     def toggle_timer(self):
         if self.timer.is_running:
             self.timer.pause()
-            self.start_btn.setIcon(QIcon("src/resources/icon_play.svg"))
+            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
         else:
             self.timer.start()
-            self.start_btn.setIcon(QIcon("src/resources/icon_pause.svg"))
+            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_pause.svg")))
             if self.auto_hide_sidebar_toggle.isChecked():
                 self.animate_sidebar(0)
 
@@ -1070,7 +1068,7 @@ class MainWindow(QMainWindow):
         self.break_info.style().polish(self.break_info)
 
     def handle_timer_finished(self):
-        self.start_btn.setIcon(QIcon("src/resources/icon_play.svg"))
+        self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
         if self.auto_hide_sidebar_toggle.isChecked():
             self.animate_sidebar(85)
             
