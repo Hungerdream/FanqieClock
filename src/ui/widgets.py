@@ -102,6 +102,7 @@ class CircularProgressBar(QWidget):
         self._value = 100
         self._max_value = 100
         self._color = QColor("#BB86FC")
+        self._bg_color = QColor("#F0F0F0")
         self.setMinimumSize(400, 400)
         
         # Layout for centered content
@@ -126,6 +127,10 @@ class CircularProgressBar(QWidget):
         self._color = QColor(color_str)
         self.update()
 
+    def set_bg_color(self, color_str):
+        self._bg_color = QColor(color_str)
+        self.update()
+
     def paintEvent(self, event):
         width = self.width()
         height = self.height()
@@ -138,7 +143,7 @@ class CircularProgressBar(QWidget):
         painter.translate(width / 2, height / 2)
         
         # Background Circle
-        bg_pen = QPen(QColor("#F0F0F0"))
+        bg_pen = QPen(self._bg_color)
         bg_pen.setWidth(10)
         bg_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
         painter.setPen(bg_pen)

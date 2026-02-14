@@ -1,0 +1,254 @@
+/* Global Styles - Calm Dark Theme */
+QMainWindow {
+    background-color: #121212;
+}
+
+QWidget {
+    color: #E6E6E6;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+/* Sidebar */
+#Sidebar {
+    background-color: #1A1A1A;
+    border-right: 1px solid #222222;
+}
+
+.SidebarButton {
+    background-color: transparent;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 8px 10px;
+    font-size: 26px;
+    color: #8B8B8B;
+    font-family: "Segoe UI Symbol", "Segoe UI Emoji";
+}
+
+.SidebarButton:hover {
+    color: #E0E0E0;
+    background-color: #1F1F1F;
+}
+
+.SidebarButton[active="true"] {
+    color: #FFFFFF;
+    background-color: #1F1F1F;
+    border-left: 4px solid #CFCFCF;
+}
+
+/* Timer */
+#TimerLabel {
+    font-size: 180px;
+    font-weight: 900;
+    color: #EAEAEA;
+    background-color: transparent;
+    margin: 20px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+#ModeLabel {
+    font-size: 14px;
+    color: #A7A7A7;
+    margin-bottom: 5px;
+}
+
+#TimerContainer {
+    background-color: #121212;
+}
+
+/* Info Bar */
+#InfoBar {
+    margin-top: 50px;
+}
+
+.InfoLabel {
+    font-size: 12px;
+    color: #8E8E8E;
+}
+
+.InfoLabelActive {
+    font-size: 12px;
+    color: #E0E0E0;
+    font-weight: bold;
+}
+
+/* Kanban */
+.KanbanColumn {
+    background-color: #1A1A1A;
+    border-radius: 15px;
+    border: 1px solid #262626;
+}
+
+.KanbanTitle {
+    font-size: 18px;
+    font-weight: bold;
+    color: #E0E0E0;
+    margin-bottom: 15px;
+    padding-left: 5px;
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+
+.KanbanList {
+    background-color: transparent;
+    border: none;
+    outline: none;
+}
+
+.KanbanList::item {
+    background-color: #141414;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    border: 1px solid #262626;
+    padding: 10px;
+}
+
+.KanbanList::item:hover {
+    border-color: #3A3A3A;
+    background-color: #1C1C1C;
+}
+
+.KanbanList::item:selected {
+    background-color: #1F1F1F;
+    border-color: #3A3A3A;
+    color: #E6E6E6;
+}
+
+#KanbanItemLabel {
+    font-size: 15px;
+    color: #E0E0E0;
+    font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+}
+
+/* Stats */
+.StatCard {
+    background-color: #161616;
+    border-radius: 20px;
+    padding: 25px;
+    margin: 10px;
+    border: 1px solid #262626;
+}
+
+.StatValue {
+    font-size: 32px;
+    font-weight: bold;
+    color: #E2E2E2;
+}
+
+.StatLabel {
+    font-size: 14px;
+    color: #9A9A9A;
+    margin-top: 5px;
+}
+
+/* Notes */
+#NotesTable {
+    background-color: transparent;
+    border: none;
+    gridline-color: #2A2A2A;
+    font-size: 15px;
+}
+
+#NotesTable::item {
+    padding: 15px;
+    border-bottom: 1px solid #2A2A2A;
+}
+
+#NotesTable::item:selected {
+    background-color: #1F1F1F;
+    color: #E6E6E6;
+}
+
+/* Buttons */
+QPushButton {
+    background-color: #1E1E1E;
+    border: 1px solid #2A2A2A;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-size: 15px;
+    color: #E0E0E0;
+}
+
+QPushButton:hover {
+    background-color: #2A2A2A;
+    border-color: #3A3A3A;
+}
+
+QPushButton:pressed {
+    background-color: #323232;
+}
+
+.DeleteButton {
+    background-color: #2B1E20;
+    border: 1px solid #3A2A2C;
+    color: #FF7777;
+    font-size: 13px;
+    padding: 5px;
+}
+
+.DeleteButton:hover {
+    background-color: #A23A3A;
+    color: #FFFFFF;
+    border-color: #A23A3A;
+}
+
+#PrimaryButton {
+    background-color: #E6E6E6;
+    color: #121212;
+    border: none;
+    font-weight: bold;
+    border-radius: 25px;
+}
+
+#PrimaryButton:hover {
+    background-color: #D9D9D9;
+}
+
+QLineEdit, QTextEdit {
+    border: 1px solid #2A2A2A;
+    border-radius: 10px;
+    padding: 12px;
+    background-color: #1A1A1A;
+    selection-background-color: #2F2F2F;
+    selection-color: #E6E6E6;
+}
+
+QLineEdit:focus, QTextEdit:focus {
+    border-color: #3A3A3A;
+    background-color: #1C1C1C;
+}
+
+/* Floating Window */
+#FloatingContainer {
+    background-color: #161616;
+    border: 1px solid #222222;
+    border-radius: 18px;
+}
+
+/* Circle Control Buttons */
+.CircleControlBtn {
+    background-color: #2C2C2C;
+    border: none;
+    font-size: 18px;
+    color: #E6E6E6;
+    border-radius: 22px;
+}
+
+.CircleControlBtn:hover {
+    background-color: #3A3A3A;
+}
+
+.CircleControlBtn:pressed {
+    background-color: #4A4A4A;
+}
+
+/* Progress bar line */
+QProgressBar {
+    background-color: #1E1E1E;
+    border: none;
+    border-radius: 2px;
+}
+QProgressBar::chunk {
+    background-color: #CFCFCF;
+    border-radius: 2px;
+}
+

@@ -149,7 +149,8 @@ class DataManager(QObject):
                 "sound_enabled": True,
                 "white_noise_enabled": False,
                 "auto_hide_sidebar": True,
-                "sidebar_manual_state": None # None=Auto, 'collapsed', 'expanded'
+                "sidebar_manual_state": None, # None=Auto, 'collapsed', 'expanded'
+                "theme": "light"
             }
         }
 
@@ -161,7 +162,7 @@ class DataManager(QObject):
     def update_tasks(self, tasks_dict):
         self.data["tasks"] = tasks_dict
         self.save_data()
-
+                            
     def update_settings(self, settings_dict):
         current = self.data.get("settings", {})
         current.update(settings_dict)

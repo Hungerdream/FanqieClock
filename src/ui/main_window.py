@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QTableWidget, QTableWidgetItem, QHeaderView, 
                              QGraphicsOpacityEffect, QProgressBar, QSizePolicy,
                              QCheckBox, QGridLayout, QMessageBox, QFileDialog, QMenu)
+from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPropertyAnimation, QEasingCurve, QDate, QEvent, QParallelAnimationGroup, QLocale, QSizeF, QTimer, QPoint
 from PyQt6.QtGui import QColor, QFont, QIcon, QTextDocument, QPageSize, QPdfWriter, QCursor, QPixmap
@@ -271,6 +272,8 @@ class MainWindow(QMainWindow):
                 btn.clicked.connect(self.switch_to_compact.emit)
             elif key == "theme":
                 self.theme_btn = btn
+                self.theme_btn.setCheckable(True)
+                self.theme_btn.toggled.connect(self.on_theme_toggled)
         
         header_layout.addLayout(icon_btns_layout)
         container_layout.addWidget(header)
@@ -292,6 +295,7 @@ class MainWindow(QMainWindow):
         self.progress_bar = CircularProgressBar(progress_container)
         self.progress_bar.setMinimumSize(360, 360) 
         self.progress_bar.set_color("#000000") 
+        self.progress_bar.set_bg_color("#F0F0F0")
         self.progress_bar.show()
         
         # Overlay Timer Label
@@ -890,6 +894,14 @@ class MainWindow(QMainWindow):
         
         self.timer.set_durations(self.work_mins_spin.value(), self.break_mins_spin.value())
         self.timer.set_sound_enabled(self.sound_toggle.isChecked())
+        
+        # Apply saved theme preference
+        theme = settings.get("theme", "light")
+        self.apply_theme(theme)
+        if hasattr(self, 'theme_btn'):
+            self.theme_btn.blockSignals(True)
+            self.theme_btn.setChecked(theme == "dark")
+            self.theme_btn.blockSignals(False)
 
     def switch_page(self, index):
         if self.content_stack.currentIndex() == index: return
@@ -1420,3 +1432,55 @@ class MainWindow(QMainWindow):
         self.data_manager.update_settings(settings)
         self.timer.set_durations(w, b)
         self.timer.set_sound_enabled(sound_enabled)
+
+    def on_theme_toggled(self, checked):
+        theme = "dark" if checked else "light"
+        self.apply_theme(theme)
+        self.data_manager.update_settings({"theme": theme})
+
+    def apply_theme(self, theme):
+        app = QApplication.instance()
+        if theme == "dark":
+            style_path = get_resource_path(os.path.join("styles", "style_dark.qss"))
+            if os.path.exists(style_path):
+                with open(style_path, "r", encoding="utf-8") as f:
+                    app.setStyleSheet(f.read())
+            if hasattr(self, "timer_label"):
+                self.timer_label.setStyleSheet("font-size: 96px; font-weight: bold; color: #E6E6E6; font-family: 'Segoe UI', sans-serif; background: transparent;")
+            if hasattr(self, "progress_bar"):
+                self.progress_bar.set_color("#E6E6E6")
+                self.progress_bar.set_bg_color("#2A2A2A")
+            if hasattr(self, "progress_line"):
+                self.progress_line.setStyleSheet("""
+                    QProgressBar {
+                        background-color: #1E1E1E;
+                        border: none;
+                        border-radius: 2px;
+                    }
+                    QProgressBar::chunk {
+                        background-color: #CFCFCF;
+                        border-radius: 2px;
+                    }
+                """)
+        else:
+            style_path = get_resource_path(os.path.join("styles", "style.qss"))
+            if os.path.exists(style_path):
+                with open(style_path, "r", encoding="utf-8") as f:
+                    app.setStyleSheet(f.read())
+            if hasattr(self, "timer_label"):
+                self.timer_label.setStyleSheet("font-size: 96px; font-weight: bold; color: #1A1A1A; font-family: 'Segoe UI', sans-serif; background: transparent;")
+            if hasattr(self, "progress_bar"):
+                self.progress_bar.set_color("#000000")
+                self.progress_bar.set_bg_color("#F0F0F0")
+            if hasattr(self, "progress_line"):
+                self.progress_line.setStyleSheet("""
+                    QProgressBar {
+                        background-color: #F0F0F0;
+                        border: none;
+                        border-radius: 2px;
+                    }
+                    QProgressBar::chunk {
+                        background-color: #000000;
+                        border-radius: 2px;
+                    }
+                """)
