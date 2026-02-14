@@ -41,7 +41,7 @@ class TestNotesIcon(unittest.TestCase):
         # Check specific icon file used in the app
         icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'resources', 'icon_delete_new.svg')
         icon = QIcon(icon_path)
-        
+        #测试
         if not os.path.exists(icon_path):
             print(f"ERROR: Icon file not found at {icon_path}")
         else:
