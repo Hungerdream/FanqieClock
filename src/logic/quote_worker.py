@@ -38,5 +38,6 @@ class QuoteWorker(QThread):
                 self.quote_fetched.emit(content, author)
             else:
                 self.quote_fetched.emit("生活原本沉闷，但跑起来就有风。", "—— 佚名")
-        except Exception:
+        except Exception as e:
+            print(f"Quote fetch error: {e}")
             self.quote_fetched.emit("生活原本沉闷，但跑起来就有风。", "—— 佚名")

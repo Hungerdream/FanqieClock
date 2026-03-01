@@ -5,8 +5,8 @@ class SoundWorker(QRunnable):
     def run(self):
         try:
             winsound.MessageBeep(winsound.MB_ICONASTERISK)
-        except:
-            pass
+        except Exception as e:
+            print(f"Sound playback error: {e}")
 
 class PomodoroTimer(QObject):
     tick = pyqtSignal(int)  # Sends remaining seconds

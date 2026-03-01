@@ -50,9 +50,9 @@ class DataManager(QObject):
         self.data = self.load_data()
 
     def _xor_cipher(self, text):
-        # Legacy method for loading old string-based encrypted data if any
-        # New method uses bytes which is much faster.
-        # This is kept for backward compatibility if needed, but we will upgrade to bytes.
+        # Legacy method for backward compatibility with old string-based encrypted data
+        # New method (_xor_cipher_bytes) uses bytes which is much faster and is the default
+        # This method is only used as a fallback when loading old data files
         return "".join([chr(ord(c) ^ ord(self.key[i % len(self.key)])) for i, c in enumerate(text)])
 
     def _xor_cipher_bytes(self, data_bytes):
@@ -80,7 +80,8 @@ class DataManager(QObject):
                             decoded_str = decoded_bytes.decode('utf-8')
                             decrypted_str = self._xor_cipher(decoded_str)
                             data = json.loads(decrypted_str)
-                    except:
+                    except Exception as e:
+                        print(f"Failed to decrypt data: {e}")
                         return self.get_default_data()
 
                 # Data Migration for Tasks

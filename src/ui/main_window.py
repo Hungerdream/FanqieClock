@@ -558,7 +558,7 @@ class MainWindow(QMainWindow):
         self.notes_table = QTableWidget(0, 2)
         self.notes_table.setObjectName("NotesTable")
         self.notes_table.setHorizontalHeaderLabels(["标题", "摘要"])
-        self.notes_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
+        self.notes_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
         self.notes_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.notes_table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.notes_table.verticalHeader().setVisible(False)

@@ -2,7 +2,7 @@ import sys
 import os
 import ctypes
 from PyQt6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSharedMemory
 from PyQt6.QtGui import QIcon
 from logic.timer import PomodoroTimer
 from ui.main_window import MainWindow
@@ -26,6 +26,13 @@ def get_resource_path(relative_path):
 
 class PomodoroApp:
     def __init__(self):
+        # Single instance check using QSharedMemory
+        self.shared_memory = QSharedMemory("FanqieClock_SingleInstance")
+        if not self.shared_memory.create(1):
+            # Another instance is already running
+            print("番茄钟已经在运行中")
+            sys.exit(1)
+        
         # Set AppUserModelID for Windows Taskbar Icon
         myappid = 'Trae.FanqieClock.App.1.0' # arbitrary string
         try:
@@ -122,7 +129,11 @@ class PomodoroApp:
         self.main_window.activateWindow()
 
     def run(self):
-        sys.exit(self.app.exec())
+        try:
+            sys.exit(self.app.exec())
+        finally:
+            # Clean up shared memory
+            self.shared_memory.detach()
 
 if __name__ == "__main__":
     app = PomodoroApp()
