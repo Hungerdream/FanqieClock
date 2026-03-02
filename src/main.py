@@ -83,7 +83,7 @@ class PomodoroApp:
         show_action.triggered.connect(self.show_main)
         
         quit_action = self.tray_menu.addAction("退出")
-        quit_action.triggered.connect(self.app.quit)
+        quit_action.triggered.connect(self.quit_app)
         
         self.tray_icon.setContextMenu(self.tray_menu)
         self.tray_icon.activated.connect(self.on_tray_icon_activated)
@@ -127,6 +127,13 @@ class PomodoroApp:
         self.main_window.setWindowState(Qt.WindowState.WindowNoState)
         self.main_window.show()
         self.main_window.activateWindow()
+
+    def quit_app(self):
+        try:
+            self.main_window.data_manager.save_data_sync()
+        except Exception as e:
+            print(f"Error saving data on quit: {e}")
+        self.app.quit()
 
     def run(self):
         try:

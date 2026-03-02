@@ -160,6 +160,31 @@ class DataManager(QObject):
         worker = SaveWorker(self.filename, self.data, self.key, self.save_error)
         self.thread_pool.start(worker)
 
+    def save_data_sync(self):
+        try:
+            dir_path = os.path.dirname(os.path.abspath(self.filename))
+            os.makedirs(dir_path, exist_ok=True)
+            
+            # Serialize
+            json_str = json.dumps(self.data, ensure_ascii=False, indent=None)
+            json_bytes = json_str.encode('utf-8')
+            
+            # Optimized XOR Encryption
+            key_bytes = self.key.encode('utf-8')
+            encrypted_bytes = bytes(a ^ b for a, b in zip(json_bytes, cycle(key_bytes)))
+            
+            final_content = base64.b64encode(encrypted_bytes).decode('utf-8')
+            
+            # Atomic Write
+            temp_filename = f"{self.filename}.tmp"
+            with open(temp_filename, "w", encoding="utf-8") as f:
+                f.write(final_content)
+            
+            os.replace(temp_filename, self.filename)
+        except Exception as e:
+            print(f"Error saving data synchronously: {e}")
+            raise
+
     def update_tasks(self, tasks_dict):
         self.data["tasks"] = tasks_dict
         self.save_data()
