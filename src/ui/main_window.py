@@ -1068,10 +1068,15 @@ class MainWindow(QMainWindow):
             self.mode_label.setText("正在休息")
             self.work_info.setProperty("class", "InfoLabel")
             self.break_info.setProperty("class", "InfoLabelActive")
-            # Update break info text for normal break
             mins = self.timer.break_seconds // 60
-            self.break_info.setText(f"休息 {mins:02d}:00")
+            self.break_info.setText(f"短休 {mins:02d}:00")
             self.long_break_overlay.hide()
+        
+        # Update play/pause button icon based on timer state
+        if self.timer.is_running:
+            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_pause.svg")))
+        else:
+            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
             
         # Ensure work info text is correct
         work_mins = self.timer.work_seconds // 60
@@ -1084,7 +1089,6 @@ class MainWindow(QMainWindow):
         self.break_info.style().polish(self.break_info)
 
     def handle_timer_finished(self):
-        self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
         if self.auto_hide_sidebar_toggle.isChecked():
             self.animate_sidebar(85)
             

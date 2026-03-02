@@ -252,3 +252,18 @@ QProgressBar::chunk {
     border-radius: 2px;
 }
 
+/* ToolTip Styles */
+QToolTip {
+    background-color: #333333;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+/* Floating Window Timer Label */
+#FloatingTimerLabel {
+    color: #FFFFFF;
+}
+
