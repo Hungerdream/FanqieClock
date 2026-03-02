@@ -65,7 +65,11 @@ class MainWindow(QMainWindow):
             event.ignore()
             self.hide()
         else:
-            # If triggered by app.quit(), let it close
+            # If triggered by app.quit(), save data and let it close
+            try:
+                self.data_manager.save_data_sync()
+            except Exception as e:
+                print(f"Error saving data on close: {e}")
             event.accept()
 
     def keyPressEvent(self, event):
