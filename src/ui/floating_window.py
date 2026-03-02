@@ -65,11 +65,11 @@ class FloatingWindow(QWidget):
         # Timer Display
         self.timer_label = QLabel("25:00")
         self.timer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.timer_label.setObjectName("FloatingTimerLabel")
         self.timer_label.setStyleSheet("""
             font-size: 36px; 
             font-weight: bold; 
             font-family: 'Consolas', 'Segoe UI'; 
-            color: #1A1A1A;
             margin: 2px 0;
         """)
         
@@ -134,6 +134,14 @@ class FloatingWindow(QWidget):
         is_work = mode == 'work'
         self.mode_text.setText("专注中" if is_work else "休息中")
         self.mode_dot.setStyleSheet(f"color: #000000; font-size: 14px;")
+        
+        # Update play/pause button icon based on timer state
+        if self.timer.is_running:
+            self.play_btn.setIcon(QIcon(get_resource_path("resources/icon_pause.svg")))
+            self.play_btn.setToolTip("暂停")
+        else:
+            self.play_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
+            self.play_btn.setToolTip("开始")
 
     def toggle_timer(self):
         if self.timer.is_running:

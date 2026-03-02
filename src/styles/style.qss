@@ -338,3 +338,18 @@ QLineEdit:focus, QTextEdit:focus {
     background-color: #F9F9F9;
     border-radius: 5px;
 }
+
+/* ToolTip Styles */
+QToolTip {
+    background-color: #333333;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+/* Floating Window Timer Label */
+#FloatingTimerLabel {
+    color: #1A1A1A;
+}
