@@ -54,6 +54,28 @@ run_app.bat
 python src/main.py
 ```
 
+## 打包/构建
+
+将应用程序打包为可执行文件:
+
+**Windows:**
+```cmd
+build_exe.bat
+```
+
+打包流程说明:
+1. 自动安装项目依赖 (`requirements.txt`)
+2. 检查依赖是否完整
+3. 清理旧的构建文件 (`build/` 和 `dist/` 目录)
+4. 使用 PyInstaller 打包应用程序
+5. 生成的可执行文件位于 `dist/FanqieClock/FanqieClock.exe`
+
+**注意事项:**
+- 首次打包需要下载 PyInstaller，可能需要一些时间
+- 打包过程中会生成 `build/` 和 `dist/` 目录
+- 如果打包失败，请查看 `build.log` 文件获取详细错误信息
+- 确保已安装 Python 3.10+ 和所有依赖项
+
 ## 项目结构
 
 - `src/`: 源代码。
