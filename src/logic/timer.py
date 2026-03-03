@@ -80,9 +80,8 @@ class PomodoroTimer(QObject):
         self.finished.emit()
         self.switch_mode()
         
-        # Auto-start break timer after work session
-        if was_work:
-            self.start()
+        # Auto-start next timer (break after work, work after break)
+        self.start()
 
     def switch_mode(self):
         if self.current_mode == 'work':
