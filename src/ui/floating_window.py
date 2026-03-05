@@ -121,6 +121,8 @@ class FloatingWindow(QWidget):
     def setup_connections(self):
         self.timer.tick.connect(self.update_timer_display)
         self.timer.mode_changed.connect(self.update_mode_display)
+        self.timer.started.connect(self.update_play_pause_button)
+        self.timer.paused.connect(self.update_play_pause_button)
         
         # Play button connected in create_control_btn
         self.stop_btn.clicked.connect(self.timer.reset)
@@ -130,12 +132,7 @@ class FloatingWindow(QWidget):
         mins, secs = divmod(seconds, 60)
         self.timer_label.setText(f"{mins:02d}:{secs:02d}")
 
-    def update_mode_display(self, mode):
-        is_work = mode == 'work'
-        self.mode_text.setText("专注中" if is_work else "休息中")
-        self.mode_dot.setStyleSheet(f"color: #000000; font-size: 14px;")
-        
-        # Update play/pause button icon based on timer state
+    def update_play_pause_button(self):
         if self.timer.is_running:
             self.play_btn.setIcon(QIcon(get_resource_path("resources/icon_pause.svg")))
             self.play_btn.setToolTip("暂停")
@@ -143,15 +140,19 @@ class FloatingWindow(QWidget):
             self.play_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
             self.play_btn.setToolTip("开始")
 
+    def update_mode_display(self, mode):
+        is_work = mode == 'work'
+        self.mode_text.setText("专注中" if is_work else "休息中")
+        self.mode_dot.setStyleSheet(f"color: #000000; font-size: 14px;")
+        
+        # Update play/pause button icon based on timer state
+        self.update_play_pause_button()
+
     def toggle_timer(self):
         if self.timer.is_running:
             self.timer.pause()
-            self.play_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
-            self.play_btn.setToolTip("开始")
         else:
             self.timer.start()
-            self.play_btn.setIcon(QIcon(get_resource_path("resources/icon_pause.svg")))
-            self.play_btn.setToolTip("暂停")
         
         # Simple scale animation for feedback
         self.anim = QPropertyAnimation(self.play_btn, b"iconSize")

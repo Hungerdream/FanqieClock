@@ -868,6 +868,8 @@ class MainWindow(QMainWindow):
         self.timer.tick.connect(self.update_timer_display)
         self.timer.mode_changed.connect(self.update_mode_display)
         self.timer.finished.connect(self.handle_timer_finished)
+        self.timer.started.connect(self.update_play_pause_button)
+        self.timer.paused.connect(self.update_play_pause_button)
         
         self.start_btn.clicked.connect(self.toggle_timer)
         # self.skip_btn removed/replaced by abandon_btn
@@ -1020,19 +1022,22 @@ class MainWindow(QMainWindow):
 
     def stop_timer(self):
         self.timer.reset()
-        self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg"))) # Reset start button icon
         if self.auto_hide_sidebar_toggle.isChecked():
             self.animate_sidebar(85)
 
     def toggle_timer(self):
         if self.timer.is_running:
             self.timer.pause()
-            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
         else:
             self.timer.start()
-            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_pause.svg")))
             if self.auto_hide_sidebar_toggle.isChecked():
                 self.animate_sidebar(0)
+
+    def update_play_pause_button(self):
+        if self.timer.is_running:
+            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_pause.svg")))
+        else:
+            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
 
     def update_timer_display(self, seconds):
         mins, secs = divmod(seconds, 60)
