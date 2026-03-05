@@ -12,6 +12,8 @@ class PomodoroTimer(QObject):
     tick = pyqtSignal(int)  # Sends remaining seconds
     finished = pyqtSignal()
     mode_changed = pyqtSignal(str) # 'work', 'break', 'long_break'
+    started = pyqtSignal()
+    paused = pyqtSignal()
 
     def __init__(self, work_minutes=25, break_minutes=5, long_break_minutes=15):
         super().__init__()
@@ -51,12 +53,14 @@ class PomodoroTimer(QObject):
             self.end_time = QDateTime.currentDateTime().addSecs(self.remaining_seconds)
             self.timer.start()
             self._play_sound()
+            self.started.emit()
 
     def pause(self):
         if self.is_running:
             self.is_running = False
             self.timer.stop()
             # remaining_seconds is already up to date from _handle_tick logic
+            self.paused.emit()
 
     def reset(self):
         self.pause()
