@@ -8,10 +8,15 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 from logic.timer import PomodoroTimer
 from PyQt6.QtWidgets import QApplication
 
-# App needed for QTimer signals
-app = QApplication(sys.argv)
-
 class TestPomodoroTimer(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # App needed for QTimer signals
+        if not QApplication.instance():
+            cls.app = QApplication(sys.argv)
+        else:
+            cls.app = QApplication.instance()
+
     def setUp(self):
         # Use very short durations for testing
         self.timer = PomodoroTimer(work_minutes=0.1, break_minutes=0.1, long_break_minutes=0.1)
