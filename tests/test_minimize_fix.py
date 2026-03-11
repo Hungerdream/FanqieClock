@@ -41,13 +41,13 @@ class TestWindowRestoreFixed(unittest.TestCase):
         self.window.activateWindow()
         QApplication.processEvents()
         
+        # Allow window system to update state
+        QTimer.singleShot(100, lambda: None)
+        QApplication.processEvents()
+        
         # 3. Check state
         state = self.window.windowState()
         is_minimized = bool(state & Qt.WindowState.WindowMinimized)
-        
-        print(f"\n[Fixed] Window State: {state}")
-        print(f"[Fixed] Is Minimized: {is_minimized}")
-        print(f"[Fixed] Is Visible: {self.window.isVisible()}")
         
         self.assertFalse(is_minimized, "Window should NOT be minimized after fix")
         self.assertTrue(self.window.isVisible(), "Window should be visible")
