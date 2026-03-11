@@ -40,6 +40,12 @@ class TestPomodoroTimer(unittest.TestCase):
         self.assertFalse(self.timer.is_running)
         self.assertEqual(self.timer.remaining_seconds, self.timer.work_seconds)
 
+    def test_abandon(self):
+        self.timer.start()
+        self.timer.abandon()
+        self.assertFalse(self.timer.is_running)
+        self.assertEqual(self.timer.remaining_seconds, self.timer.work_seconds)
+
     def test_mode_switching_cycle(self):
         # Initial: Work
         self.assertEqual(self.timer.current_mode, 'work')

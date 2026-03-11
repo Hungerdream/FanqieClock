@@ -236,7 +236,7 @@ QLineEdit:focus, QTextEdit:focus {
     border: none;
     font-size: 18px;
     color: #FFFFFF;
-    border-radius: 22px; /* Fits 45px circle */
+    border-radius: 25px; /* Fits 50px circle */
 }
 
 .CircleControlBtn:hover {
@@ -297,6 +297,7 @@ QLineEdit:focus, QTextEdit:focus {
     background-color: #000000;
     color: #FFFFFF;
     font-size: 20px;
+    border-radius: 25px;
 }
 
 #FloatingPlay:hover {

@@ -336,43 +336,18 @@ class MainWindow(QMainWindow):
         
         # Controls
         controls_layout = QHBoxLayout()
-        controls_layout.setSpacing(40)
         controls_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # Stop Button
-        self.stop_btn = SmoothButton()
-        self.stop_btn.setIcon(QIcon(get_resource_path("resources/icon_stop.svg")))
-        self.stop_btn.setIconSize(QSize(24, 24))
-        self.stop_btn.setFixedSize(50, 50)
-        # Use methods instead of property for SmoothButton
-        self.stop_btn.set_colors("#000000", "#333333", "#555555")
-        self.stop_btn.set_border_radius(25)
-        self.stop_btn.setToolTip("停止 / 重置")
-        self.stop_btn.clicked.connect(self.stop_timer)
-        
-        # Play/Pause Button
+        # Main Start/Abandon Button
         self.start_btn = SmoothButton()
         self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
         self.start_btn.setIconSize(QSize(32, 32))
-        self.start_btn.setFixedSize(72, 72)
-        # Main button style
+        self.start_btn.setFixedSize(80, 80) # Slightly larger for single button
         self.start_btn.set_colors("#000000", "#333333", "#555555")
-        self.start_btn.set_border_radius(36)
-        self.start_btn.setToolTip("开始 / 暂停")
+        self.start_btn.set_border_radius(40)
+        self.start_btn.setToolTip("开始专注")
         
-        # Abandon Button
-        self.abandon_btn = SmoothButton()
-        self.abandon_btn.setIcon(QIcon(get_resource_path("resources/icon_abandon.svg")))
-        self.abandon_btn.setIconSize(QSize(24, 24))
-        self.abandon_btn.setFixedSize(50, 50)
-        self.abandon_btn.set_colors("#000000", "#333333", "#555555")
-        self.abandon_btn.set_border_radius(25)
-        self.abandon_btn.setToolTip("放弃当前番茄")
-        self.abandon_btn.clicked.connect(self.abandon_timer)
-        
-        controls_layout.addWidget(self.stop_btn)
         controls_layout.addWidget(self.start_btn)
-        controls_layout.addWidget(self.abandon_btn)
         
         container_layout.addLayout(controls_layout)
         container_layout.addStretch(2)
@@ -870,6 +845,7 @@ class MainWindow(QMainWindow):
         self.timer.finished.connect(self.handle_timer_finished)
         self.timer.started.connect(self.update_play_pause_button)
         self.timer.paused.connect(self.update_play_pause_button)
+        self.timer.abandoned.connect(self.update_play_pause_button)
         
         self.start_btn.clicked.connect(self.toggle_timer)
         # self.skip_btn removed/replaced by abandon_btn
@@ -1027,7 +1003,17 @@ class MainWindow(QMainWindow):
 
     def toggle_timer(self):
         if self.timer.is_running:
-            self.timer.pause()
+            from PyQt6.QtWidgets import QMessageBox
+            reply = QMessageBox.question(
+                self, '放弃当前番茄钟？',
+                '根据番茄工作法，番茄钟一旦开始就不应暂停。确定要放弃当前这一组计时吗？',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self.timer.abandon()
+                if self.auto_hide_sidebar_toggle.isChecked():
+                    self.animate_sidebar(85)
         else:
             self.timer.start()
             if self.auto_hide_sidebar_toggle.isChecked():
@@ -1035,9 +1021,11 @@ class MainWindow(QMainWindow):
 
     def update_play_pause_button(self):
         if self.timer.is_running:
-            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_pause.svg")))
+            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_abandon.svg")))
+            self.start_btn.setToolTip("放弃专注")
         else:
             self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
+            self.start_btn.setToolTip("开始专注")
 
     def update_timer_display(self, seconds):
         mins, secs = divmod(seconds, 60)
@@ -1078,10 +1066,7 @@ class MainWindow(QMainWindow):
             self.long_break_overlay.hide()
         
         # Update play/pause button icon based on timer state
-        if self.timer.is_running:
-            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_pause.svg")))
-        else:
-            self.start_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
+        self.update_play_pause_button()
             
         # Ensure work info text is correct
         work_mins = self.timer.work_seconds // 60

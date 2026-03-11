@@ -14,6 +14,7 @@ class PomodoroTimer(QObject):
     mode_changed = pyqtSignal(str) # 'work', 'break', 'long_break'
     started = pyqtSignal()
     paused = pyqtSignal()
+    abandoned = pyqtSignal()
 
     def __init__(self, work_minutes=25, break_minutes=5, long_break_minutes=15):
         super().__init__()
@@ -71,6 +72,11 @@ class PomodoroTimer(QObject):
         else: # long_break
             self.remaining_seconds = self.long_break_seconds
         self.tick.emit(self.remaining_seconds)
+
+    def abandon(self):
+        """Abandon current session and reset progress for this mode"""
+        self.reset()
+        self.abandoned.emit()
 
     def skip(self):
         """Skip current session and move to next mode"""
