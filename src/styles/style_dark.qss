@@ -230,7 +230,7 @@ QLineEdit:focus, QTextEdit:focus {
     border: none;
     font-size: 18px;
     color: #E6E6E6;
-    border-radius: 22px;
+    border-radius: 25px; /* Updated from 22px to 25px for 50x50 */
 }
 
 .CircleControlBtn:hover {

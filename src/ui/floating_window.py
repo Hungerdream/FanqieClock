@@ -75,16 +75,15 @@ class FloatingWindow(QWidget):
         
         # Controls Row
         controls_layout = QHBoxLayout()
-        controls_layout.setSpacing(10)
+        controls_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # Create control items (Icon + Text)
-        self.stop_btn = self.create_control_btn(get_resource_path("resources/icon_stop.svg"), "重置", "FloatingStop")
-        self.play_btn = self.create_control_btn(get_resource_path("resources/icon_play.svg"), "开始", "FloatingPlay")
-        self.skip_btn = self.create_control_btn(get_resource_path("resources/icon_skip.svg"), "跳过", "FloatingSkip")
+        # Main Start/Abandon Button
+        self.play_btn = self.create_control_btn(get_resource_path("resources/icon_play.svg"), "开始专注", "FloatingPlay")
+        self.play_btn.setFixedSize(50, 50)
+        self.play_btn.setIconSize(QSize(24, 24))
+        # Remove manual styleSheet to avoid overriding QSS colors and hover effects
         
-        controls_layout.addWidget(self.stop_btn)
         controls_layout.addWidget(self.play_btn)
-        controls_layout.addWidget(self.skip_btn)
         
         container_layout.addLayout(header)
         container_layout.addWidget(self.timer_label)
@@ -96,20 +95,9 @@ class FloatingWindow(QWidget):
         btn = QPushButton()
         btn.setIcon(QIcon(icon_path))
         btn.setObjectName(object_name)
-        
-        # Determine styling based on type
-        if object_name == "FloatingPlay":
-            btn.setIconSize(QSize(20, 20))
-            btn.setFixedSize(45, 45) # Main button stays larger
-            btn.setProperty("class", "CircleControlBtn")
-            btn.setStyleSheet("border-radius: 22px;") # Force radius for circle
-        else:
-            btn.setIconSize(QSize(14, 14)) # Even smaller icon for secondary actions
-            btn.setFixedSize(32, 32) # Even smaller button size (32px)
-            btn.setProperty("class", "SecondaryControlBtn") # New class for styling
-            btn.setStyleSheet("border-radius: 16px;") # Force radius for circle
-            
+        btn.setProperty("class", "CircleControlBtn")
         btn.setToolTip(text)
+        btn.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips)
         
         # Connect button click
         if object_name == "FloatingPlay":
@@ -123,10 +111,12 @@ class FloatingWindow(QWidget):
         self.timer.mode_changed.connect(self.update_mode_display)
         self.timer.started.connect(self.update_play_pause_button)
         self.timer.paused.connect(self.update_play_pause_button)
+        self.timer.abandoned.connect(self.update_play_pause_button)
         
-        # Play button connected in create_control_btn
-        self.stop_btn.clicked.connect(self.timer.reset)
-        self.skip_btn.clicked.connect(self.timer.skip)
+        # Initial UI sync
+        self.update_timer_display(self.timer.remaining_seconds)
+        self.update_mode_display(self.timer.current_mode)
+        self.update_play_pause_button()
 
     def update_timer_display(self, seconds):
         mins, secs = divmod(seconds, 60)
@@ -134,11 +124,11 @@ class FloatingWindow(QWidget):
 
     def update_play_pause_button(self):
         if self.timer.is_running:
-            self.play_btn.setIcon(QIcon(get_resource_path("resources/icon_pause.svg")))
-            self.play_btn.setToolTip("暂停")
+            self.play_btn.setIcon(QIcon(get_resource_path("resources/icon_abandon.svg")))
+            self.play_btn.setToolTip("放弃专注")
         else:
             self.play_btn.setIcon(QIcon(get_resource_path("resources/icon_play.svg")))
-            self.play_btn.setToolTip("开始")
+            self.play_btn.setToolTip("开始专注")
 
     def update_mode_display(self, mode):
         is_work = mode == 'work'
@@ -150,7 +140,15 @@ class FloatingWindow(QWidget):
 
     def toggle_timer(self):
         if self.timer.is_running:
-            self.timer.pause()
+            from PyQt6.QtWidgets import QMessageBox
+            reply = QMessageBox.question(
+                self, '放弃当前番茄钟？',
+                '确定要放弃当前这一组计时吗？',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self.timer.abandon()
         else:
             self.timer.start()
         
