@@ -25,19 +25,17 @@ class TestIntegration(unittest.TestCase):
         self.test_db = "test_integration_data.json"
         if os.path.exists(self.test_db):
             os.remove(self.test_db)
-            
-        # Patch DataManager in MainWindow to use test file?
-        # MainWindow instantiates DataManager internally. 
-        # We can mock it or modify the instance after creation if possible, 
-        # but MainWindow.__init__ calls load_saved_data() immediately.
-        # So better to patch the class or argument if it took one.
-        # It doesn't take one. So we have to rely on DataManager using a default or monkeypatching.
-        
-        # Monkeypatch DataManager.__init__ default filename? 
-        # Or just swap the instance after init and reload?
-        pass
+        self._windows = []  # track windows created in each test
 
     def tearDown(self):
+        for w in self._windows:
+            if hasattr(w, 'sidebar_hide_timer'):
+                w.sidebar_hide_timer.stop()
+            if hasattr(w, 'sidebar_poll_timer'):
+                w.sidebar_poll_timer.stop()
+            w.close()
+        self._windows.clear()
+        QApplication.processEvents()
         if os.path.exists(self.test_db):
             os.remove(self.test_db)
 
@@ -51,6 +49,7 @@ class TestIntegration(unittest.TestCase):
         # We need to force DataManager to use our test file.
         # Since we can't easily inject, we will modify the instance attribute.
         window = MainWindow(timer)
+        self._windows.append(window)
         window.data_manager.filename = self.test_db
         window.data_manager.data = window.data_manager.get_default_data() # Reset data
         
@@ -79,6 +78,7 @@ class TestIntegration(unittest.TestCase):
     def test_kanban_task_focus(self):
         timer = PomodoroTimer()
         window = MainWindow(timer)
+        self._windows.append(window)
         window.data_manager.filename = self.test_db
         
         # Add a task to q1
@@ -107,6 +107,7 @@ class TestIntegration(unittest.TestCase):
     def test_settings_update_timer(self):
         timer = PomodoroTimer()
         window = MainWindow(timer)
+        self._windows.append(window)
         window.data_manager.filename = self.test_db
         
         # Change settings

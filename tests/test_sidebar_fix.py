@@ -28,7 +28,13 @@ class TestSidebarFix(unittest.TestCase):
         QApplication.processEvents()
 
     def tearDown(self):
+        if hasattr(self.window, 'sidebar_hide_timer'):
+            self.window.sidebar_hide_timer.stop()
+        if hasattr(self.window, 'sidebar_poll_timer'):
+            self.window.sidebar_poll_timer.stop()
+        self.timer.pause()
         self.window.close()
+        QApplication.processEvents()
 
     def test_switch_page_does_not_interfere(self):
         """Test that switching pages does not forcefully toggle sidebar"""
