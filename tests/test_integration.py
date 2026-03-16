@@ -21,10 +21,14 @@ def _cleanup_window(window, timer=None):
         timer.timer.stop()
         timer.is_running = False
     # Stop Qt timers owned by the window
-    for attr in ('sidebar_hide_timer', 'sidebar_poll_timer'):
+    for attr in ('sidebar_hide_timer', 'sidebar_hover_timer'):
         t = getattr(window, attr, None)
         if t is not None:
             t.stop()
+    # Clean up QuoteWorker thread
+    if hasattr(window, 'quote_worker') and window.quote_worker.isRunning():
+        window.quote_worker.quit()
+        window.quote_worker.wait(1000)
     window.close()
     QApplication.processEvents()
 

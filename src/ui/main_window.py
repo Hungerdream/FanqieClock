@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QCheckBox, QGridLayout, QMessageBox, QFileDialog, QMenu, QStackedLayout,
                              QApplication)
 from PyQt6.QtGui import QAction
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPropertyAnimation, QEasingCurve, QDate, QEvent, QParallelAnimationGroup, QLocale, QSizeF, QTimer, QPoint, QRect
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPropertyAnimation, QEasingCurve, QDate, QEvent, QParallelAnimationGroup, QTimer
 from PyQt6.QtGui import QColor, QFont, QIcon, QTextDocument, QPageSize, QPdfWriter, QCursor, QPixmap
 import sys, os
 import uuid
@@ -65,6 +65,13 @@ class MainWindow(QMainWindow):
             event.ignore()
             self.hide()
         else:
+            # Stop all timers to prevent callbacks after destruction
+            self.sidebar_hide_timer.stop()
+            self.sidebar_hover_timer.stop()
+            # Clean up QuoteWorker thread
+            if hasattr(self, 'quote_worker') and self.quote_worker.isRunning():
+                self.quote_worker.quit()
+                self.quote_worker.wait(2000)  # Wait up to 2s
             # If triggered by app.quit(), save data and let it close
             try:
                 self.data_manager.save_data_sync()
@@ -168,7 +175,7 @@ class MainWindow(QMainWindow):
             
         # Responsive Sidebar Logic
         # Only trigger if timer is NOT running (timer auto-hide takes precedence)
-        if not self.timer.is_running:
+        if not hasattr(self, 'timer') or self.timer.is_running:
             width = event.size().width()
             settings = self.data_manager.data.get("settings", {})
             manual_state = settings.get("sidebar_manual_state", None)
@@ -992,10 +999,15 @@ class MainWindow(QMainWindow):
         self.anim_group = QParallelAnimationGroup()
         self.anim_group.addAnimation(self.anim_min)
         self.anim_group.addAnimation(self.anim_max)
-        # When sidebar collapses back to 0, restart hover polling
+        # When sidebar collapses back to 0, restart hover polling.
+        # Use a dedicated slot to avoid lambda accumulation on repeated calls.
         if target_width == 0:
-            self.anim_group.finished.connect(lambda: self.sidebar_hover_timer.start())
+            self.anim_group.finished.connect(self._on_sidebar_collapsed)
         self.anim_group.start()
+
+    def _on_sidebar_collapsed(self):
+        """Called once when sidebar collapse animation finishes."""
+        self.sidebar_hover_timer.start()
 
     def start_focus_on_task(self, task_data):
         self.switch_page(0) # Switch to Timer page
@@ -1088,7 +1100,7 @@ class MainWindow(QMainWindow):
         if self.auto_hide_sidebar_toggle.isChecked():
             self.animate_sidebar(85)
             
-        if self.timer.is_working:
+        if self.timer.current_mode == 'work':
             if hasattr(self, 'current_task') and self.current_task:
                 self.update_task_pomo_count(self.current_task['id'])
                 
@@ -1426,11 +1438,14 @@ class MainWindow(QMainWindow):
         sound_enabled = self.sound_toggle.isChecked()
         auto_hide = self.auto_hide_sidebar_toggle.isChecked()
         
+        # Preserve current theme setting
+        current_theme = self.data_manager.data.get("settings", {}).get("theme", "light")
         settings = {
             "work_mins": w,
             "break_mins": b,
             "sound_enabled": sound_enabled,
-            "auto_hide_sidebar": auto_hide
+            "auto_hide_sidebar": auto_hide,
+            "theme": current_theme
         }
         self.data_manager.update_settings(settings)
         self.timer.set_durations(w, b)

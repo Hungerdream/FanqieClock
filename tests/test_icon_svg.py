@@ -2,7 +2,8 @@
 import sys
 import os
 import unittest
-from PyQt6.QtWidgets import QApplication, QPushButton, QWidget, QTableWidget
+from unittest.mock import patch
+from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QIcon
 
 # Ensure path
@@ -10,6 +11,8 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 
 from ui.main_window import MainWindow
 from logic.timer import PomodoroTimer
+from logic.data_manager import DataManager
+
 
 class TestNotesIcon(unittest.TestCase):
     @classmethod
@@ -21,22 +24,36 @@ class TestNotesIcon(unittest.TestCase):
 
     def setUp(self):
         self.timer = PomodoroTimer()
-        self.window = MainWindow(self.timer)
-        # Add a dummy note
-        self.window.data_manager.update_notes([
+        with patch.object(DataManager, 'save_data', return_value=None), \
+             patch.object(DataManager, 'save_data_sync', return_value=None):
+            self.window = MainWindow(self.timer)
+        # Add a dummy note in-memory only
+        self.window.data_manager.data["notes"] = [
             {"title": "Test Note", "content": "Content", "date": "2023-01-01"}
-        ])
+        ]
 
     def tearDown(self):
+        self.timer.timer.stop()
+        self.timer.is_running = False
+        for attr in ('sidebar_hide_timer', 'sidebar_hover_timer'):
+            t = getattr(self.window, attr, None)
+            if t is not None:
+                t.stop()
+        if hasattr(self.window, 'quote_worker') and self.window.quote_worker.isRunning():
+            self.window.quote_worker.quit()
+            self.window.quote_worker.wait(1000)
         self.window.close()
+        QApplication.processEvents()
 
     def test_icon_validity(self):
-        self.window.refresh_notes_table()
+        with patch.object(DataManager, 'save_data', return_value=None):
+            self.window.refresh_notes_table()
 
-        # Check specific icon file used in the app
-        icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'resources', 'icon_delete_new.svg')
+        icon_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'src', 'resources', 'icon_delete_new.svg'
+        )
 
-        # Assert the icon file exists on disk
         self.assertTrue(
             os.path.exists(icon_path),
             f"Icon file not found at: {icon_path}"
@@ -44,20 +61,18 @@ class TestNotesIcon(unittest.TestCase):
 
         icon = QIcon(icon_path)
 
-        # Check if SVG plugin is available
         from PyQt6.QtGui import QImageReader
         formats = [fmt.data().decode() for fmt in QImageReader.supportedImageFormats()]
         self.assertIn(
             'svg', formats,
-            "SVG image format is not supported by Qt. Icons will be missing. "
-            "Ensure PyQt6 or Qt SVG plugin is installed."
+            "SVG image format is not supported by Qt. Icons will be missing."
         )
 
-        # Assert the icon loaded successfully (not null)
         self.assertFalse(
             icon.isNull(),
             f"QIcon loaded from '{icon_path}' is null — icon failed to render."
         )
+
 
 if __name__ == '__main__':
     unittest.main()
