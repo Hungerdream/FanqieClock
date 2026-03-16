@@ -175,7 +175,7 @@ class MainWindow(QMainWindow):
             
         # Responsive Sidebar Logic
         # Only trigger if timer is NOT running (timer auto-hide takes precedence)
-        if not hasattr(self, 'timer') or self.timer.is_running:
+        if not hasattr(self, 'timer') or not self.timer.is_running:
             width = event.size().width()
             settings = self.data_manager.data.get("settings", {})
             manual_state = settings.get("sidebar_manual_state", None)
