@@ -46,45 +46,21 @@ class TestUIBugs(unittest.TestCase):
         Test 1: Start Button Unresponsive
         Check if the button has duplicate connections.
         Note: PyQt doesn't easily expose the number of connections on a signal.
-        We will simulate a click and check how many times toggle_timer is called.
+        We simulate a click and verify the timer state is correct.
         """
-        # We need to mock toggle_timer to count calls
-        original_toggle = self.window.toggle_timer
-        self.call_count = 0
-        
-        def mock_toggle():
-            self.call_count += 1
-            original_toggle()
-            
-        # Replace the method - BUT the connections are already made to the original method.
-        # This approach won't work to count *existing* connections easily.
-        # However, we can deduce it from behavior:
-        # If connected twice, one click -> 2 calls.
-        #   Call 1: is_running False -> Start
-        #   Call 2: is_running True -> Pause
-        # Result: Timer remains stopped (or starts then stops).
-        
-        # Let's inspect the behavior directly.
-        # Reset timer
+        # Reset timer state
         self.window.timer.is_running = False
-        
-        # Click button
+
+        # Click button once
         self.window.start_btn.click()
-        
+
         # If connected once: timer should be running.
-        # If connected twice: timer might be paused (start -> pause).
-        
-        print(f"\n[Test StartBtn] Timer running state after click: {self.window.timer.is_running}")
-        
-        if not self.window.timer.is_running:
-            print("[FAILURE] Timer is NOT running after click. Likely double connection toggled it on then off.")
-        else:
-            print("[SUCCESS] Timer is running.")
-            
-        # Verify call count inference
-        # If it was double connected, self.timer.start() and self.timer.pause() would both be called.
-        # We can't easily track that without mocking the timer *before* window creation, which we did.
-        # But let's rely on the state check.
+        # If connected twice: start + pause = stopped (incorrect behavior).
+        self.assertTrue(
+            self.window.timer.is_running,
+            "Timer should be running after a single start button click. "
+            "If it's not, the button may have duplicate signal connections."
+        )
 
     def test_header_layout_alignment(self):
         """
@@ -92,45 +68,35 @@ class TestUIBugs(unittest.TestCase):
         Check if the container layout forces alignment that shrinks the header.
         """
         timer_page = self.window.content_stack.widget(0)
-        # timer_page -> layout -> container -> layout
-        # We need to find 'TimerContainer'
         container = timer_page.findChild(QWidget, "TimerContainer")
         self.assertIsNotNone(container, "TimerContainer not found")
         
         layout = container.layout()
         alignment = layout.alignment()
         
-        print(f"\n[Test Header] Container Layout Alignment: {alignment}")
-        
-        # Qt.AlignmentFlag.AlignCenter is a combination of AlignVCenter | AlignHCenter
-        # If AlignHCenter (0x0004) is present, items are horizontally centered and won't stretch.
-        
-        if alignment & Qt.AlignmentFlag.AlignHCenter:
-            print("[FAILURE] Container has Horizontal Center Alignment. Header will not stretch.")
-        else:
-            print("[SUCCESS] Container does not have Horizontal Center Alignment.")
+        # Qt.AlignmentFlag.AlignHCenter (0x0004): items are horizontally centered
+        # and won't stretch to full width — this would be a layout bug.
+        self.assertFalse(
+            bool(alignment & Qt.AlignmentFlag.AlignHCenter),
+            "TimerContainer has AlignHCenter which prevents the header from stretching full width."
+        )
 
     def test_settings_numerals(self):
         """
         Test 3: Settings Numerals
-        Check locale of the spinboxes.
+        Verify that spinbox locale uses English/C locale to ensure Arabic digits (0-9).
         """
-        settings_page = self.window.content_stack.widget(4) # Index 4 is settings
-        # We need to access work_mins_spin. MainWindow saves it as self.work_mins_spin
-        # but that attribute is on MainWindow.
-        
         spinbox = self.window.work_mins_spin
         locale = spinbox.locale()
-        
-        print(f"\n[Test Settings] Spinbox Locale: {locale.name()}")
-        
-        # We want to ensure it's not something that produces non-Arabic digits.
-        # Ideally it should be English or C, or we explicitely verify we are not seeing weird behavior.
-        # But simply checking if we explicitly set it (which we haven't yet) is a good proxy.
-        # We'll assert that we *want* it to be English/US for consistency.
-        
-        # Since we haven't fixed it, this might show system locale.
-        pass
+        locale_name = locale.name()
+
+        # Acceptable locales that produce standard Arabic digits
+        acceptable = {"en_US", "en_GB", "C", "en"}
+        self.assertTrue(
+            any(locale_name.startswith(a) for a in acceptable),
+            f"Spinbox locale is '{locale_name}', which may produce non-Arabic digits. "
+            "Consider explicitly setting spinbox.setLocale(QLocale(QLocale.Language.English))."
+        )
 
 if __name__ == '__main__':
     unittest.main()

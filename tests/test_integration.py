@@ -44,7 +44,8 @@ class TestIntegration(unittest.TestCase):
     def test_timer_finish_updates_stats(self):
         # Create Timer
         timer = PomodoroTimer()
-        timer.work_duration = 1 # 1 second for test
+        # Note: work_seconds is the correct attribute (work_duration does not exist)
+        timer.work_seconds = 1  # 1 second for test
         
         # Create Window
         # We need to force DataManager to use our test file.
@@ -63,7 +64,7 @@ class TestIntegration(unittest.TestCase):
         # timer.start() starts a QTimer. We can't wait for it easily in unit test without event loop.
         # So we will invoke the finish handler directly to test the integration logic.
         
-        # Simulate work mode
+        # Simulate work mode (finished signal emitted before switch_mode, so current_mode is still 'work')
         timer.current_mode = 'work'
         window.work_mins_spin.setValue(25)
         
@@ -74,11 +75,6 @@ class TestIntegration(unittest.TestCase):
         stats = window.data_manager.data["stats"]
         self.assertEqual(stats["total_pomodoros"], 1)
         self.assertEqual(stats["total_minutes"], 25)
-        
-        # Check if saved (file creation might happen async, so we check the in-memory data first,
-        # then check file existence with a delay if we were running the event loop)
-        # Since handle_timer_finished calls save_data() which starts a thread...
-        # We can't guarantee file is on disk instantly.
         
     def test_kanban_task_focus(self):
         timer = PomodoroTimer()

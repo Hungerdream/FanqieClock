@@ -32,29 +32,32 @@ class TestNotesIcon(unittest.TestCase):
 
     def test_icon_validity(self):
         self.window.refresh_notes_table()
-        
-        # container = self.window.notes_table.cellWidget(0, 2)
-        # layout = container.layout()
-        # btn = layout.itemAt(0).widget()
-        # icon = btn.icon()
 
         # Check specific icon file used in the app
         icon_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'resources', 'icon_delete_new.svg')
+
+        # Assert the icon file exists on disk
+        self.assertTrue(
+            os.path.exists(icon_path),
+            f"Icon file not found at: {icon_path}"
+        )
+
         icon = QIcon(icon_path)
-        #测试
-        if not os.path.exists(icon_path):
-            print(f"ERROR: Icon file not found at {icon_path}")
-        else:
-            print(f"Icon file exists at {icon_path}")
-        print(f"Icon isNull: {icon.isNull()}")
-        
+
         # Check if SVG plugin is available
         from PyQt6.QtGui import QImageReader
         formats = [fmt.data().decode() for fmt in QImageReader.supportedImageFormats()]
-        print(f"Supported formats: {formats}")
-        
-        if 'svg' not in formats:
-            print("WARNING: SVG format not supported! This is why the icon is missing.")
+        self.assertIn(
+            'svg', formats,
+            "SVG image format is not supported by Qt. Icons will be missing. "
+            "Ensure PyQt6 or Qt SVG plugin is installed."
+        )
+
+        # Assert the icon loaded successfully (not null)
+        self.assertFalse(
+            icon.isNull(),
+            f"QIcon loaded from '{icon_path}' is null — icon failed to render."
+        )
 
 if __name__ == '__main__':
     unittest.main()

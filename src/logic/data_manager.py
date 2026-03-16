@@ -1,5 +1,6 @@
 import json
 import os
+import uuid
 import base64
 import datetime
 from itertools import cycle
@@ -15,29 +16,34 @@ class SaveWorker(QRunnable):
     
     def run(self):
         try:
-            dir_path = os.path.dirname(os.path.abspath(self.filename))
-            os.makedirs(dir_path, exist_ok=True)
-            
-            # Serialize
-            json_str = json.dumps(self.data, ensure_ascii=False, indent=None)
-            json_bytes = json_str.encode('utf-8')
-            
-            # Optimized XOR Encryption
-            key_bytes = self.key.encode('utf-8')
-            encrypted_bytes = bytes(a ^ b for a, b in zip(json_bytes, cycle(key_bytes)))
-            
-            final_content = base64.b64encode(encrypted_bytes).decode('utf-8')
-            
-            # Atomic Write
-            temp_filename = f"{self.filename}.tmp"
-            with open(temp_filename, "w", encoding="utf-8") as f:
-                f.write(final_content)
-            
-            os.replace(temp_filename, self.filename)
+            _write_to_disk(self.filename, self.data, self.key)
         except Exception as e:
             if self.error_signal:
                 self.error_signal.emit(str(e))
             print(f"Error saving data in worker: {e}")
+
+
+def _write_to_disk(filename, data, key):
+    """Shared atomic write logic used by both SaveWorker and save_data_sync."""
+    dir_path = os.path.dirname(os.path.abspath(filename))
+    os.makedirs(dir_path, exist_ok=True)
+
+    # Serialize
+    json_str = json.dumps(data, ensure_ascii=False, indent=None)
+    json_bytes = json_str.encode('utf-8')
+
+    # Optimized XOR Encryption
+    key_bytes = key.encode('utf-8')
+    encrypted_bytes = bytes(a ^ b for a, b in zip(json_bytes, cycle(key_bytes)))
+
+    final_content = base64.b64encode(encrypted_bytes).decode('utf-8')
+
+    # Atomic Write
+    temp_filename = f"{filename}.tmp"
+    with open(temp_filename, "w", encoding="utf-8") as f:
+        f.write(final_content)
+
+    os.replace(temp_filename, filename)
 
 class DataManager(QObject):
     save_error = pyqtSignal(str)
@@ -75,7 +81,7 @@ class DataManager(QObject):
                         try:
                             decrypted_bytes = self._xor_cipher_bytes(decoded_bytes)
                             data = json.loads(decrypted_bytes.decode('utf-8'))
-                        except:
+                        except Exception:
                             # Fallback to old string method (if user has old data)
                             decoded_str = decoded_bytes.decode('utf-8')
                             decrypted_str = self._xor_cipher(decoded_str)
@@ -117,7 +123,6 @@ class DataManager(QObject):
 
     def _ensure_task_obj(self, task):
         if isinstance(task, str):
-            import uuid
             return {
                 "id": str(uuid.uuid4()),
                 "content": task,
@@ -162,25 +167,7 @@ class DataManager(QObject):
 
     def save_data_sync(self):
         try:
-            dir_path = os.path.dirname(os.path.abspath(self.filename))
-            os.makedirs(dir_path, exist_ok=True)
-            
-            # Serialize
-            json_str = json.dumps(self.data, ensure_ascii=False, indent=None)
-            json_bytes = json_str.encode('utf-8')
-            
-            # Optimized XOR Encryption
-            key_bytes = self.key.encode('utf-8')
-            encrypted_bytes = bytes(a ^ b for a, b in zip(json_bytes, cycle(key_bytes)))
-            
-            final_content = base64.b64encode(encrypted_bytes).decode('utf-8')
-            
-            # Atomic Write
-            temp_filename = f"{self.filename}.tmp"
-            with open(temp_filename, "w", encoding="utf-8") as f:
-                f.write(final_content)
-            
-            os.replace(temp_filename, self.filename)
+            _write_to_disk(self.filename, self.data, self.key)
         except Exception as e:
             print(f"Error saving data synchronously: {e}")
             raise
