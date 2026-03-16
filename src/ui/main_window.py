@@ -199,7 +199,9 @@ class MainWindow(QMainWindow):
             # We need to store current "responsive mode" to detect change
             is_compact_width = width < 1200
             if not hasattr(self, '_last_compact_mode'):
-                self._last_compact_mode = is_compact_width
+                # Initialize from the OLD size so we can detect a crossing event
+                old_width = event.oldSize().width()
+                self._last_compact_mode = (old_width < 1200) if old_width > 0 else (not is_compact_width)
                 
             if is_compact_width != self._last_compact_mode:
                 # Mode changed
