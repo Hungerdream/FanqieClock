@@ -39,7 +39,12 @@ class TestUIBugs(unittest.TestCase):
         self.window.show()
 
     def tearDown(self):
+        if hasattr(self.window, 'sidebar_hide_timer'):
+            self.window.sidebar_hide_timer.stop()
+        if hasattr(self.window, 'sidebar_poll_timer'):
+            self.window.sidebar_poll_timer.stop()
         self.window.close()
+        QApplication.processEvents()
 
     def test_start_button_connections(self):
         """

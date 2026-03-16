@@ -30,7 +30,13 @@ class TestSidebarAutoHide(unittest.TestCase):
         self.window.sidebar.setFixedWidth(85)
 
     def tearDown(self):
+        if hasattr(self.window, 'sidebar_hide_timer'):
+            self.window.sidebar_hide_timer.stop()
+        if hasattr(self.window, 'sidebar_poll_timer'):
+            self.window.sidebar_poll_timer.stop()
+        self.timer.pause()
         self.window.close()
+        QApplication.processEvents()
 
     def test_sidebar_collapse_on_start(self):
         # Initial state

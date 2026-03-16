@@ -30,7 +30,13 @@ class TestSidebarRobustness(unittest.TestCase):
         QApplication.processEvents()
 
     def tearDown(self):
+        if hasattr(self.window, 'sidebar_hide_timer'):
+            self.window.sidebar_hide_timer.stop()
+        if hasattr(self.window, 'sidebar_poll_timer'):
+            self.window.sidebar_poll_timer.stop()
+        self.timer.pause()
         self.window.close()
+        QApplication.processEvents()
 
     def test_enter_event_expands_immediately(self):
         """Test Enter event triggers expansion immediately"""
