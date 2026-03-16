@@ -2,6 +2,7 @@
 import sys
 import os
 import unittest
+from unittest.mock import patch
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QEvent
 
@@ -10,6 +11,8 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 
 from ui.main_window import MainWindow
 from logic.timer import PomodoroTimer
+from logic.data_manager import DataManager
+
 
 class TestSidebarFix(unittest.TestCase):
     @classmethod
@@ -21,18 +24,21 @@ class TestSidebarFix(unittest.TestCase):
 
     def setUp(self):
         self.timer = PomodoroTimer()
-        self.window = MainWindow(self.timer)
+        with patch.object(DataManager, 'save_data', return_value=None), \
+             patch.object(DataManager, 'save_data_sync', return_value=None):
+            self.window = MainWindow(self.timer)
         self.window.show()
         self.window.auto_hide_sidebar_toggle.setChecked(True)
         self.window.sidebar.setFixedWidth(85)
         QApplication.processEvents()
 
     def tearDown(self):
-        if hasattr(self.window, 'sidebar_hide_timer'):
-            self.window.sidebar_hide_timer.stop()
-        if hasattr(self.window, 'sidebar_poll_timer'):
-            self.window.sidebar_poll_timer.stop()
-        self.timer.pause()
+        self.timer.timer.stop()
+        self.timer.is_running = False
+        for attr in ('sidebar_hide_timer', 'sidebar_poll_timer'):
+            t = getattr(self.window, attr, None)
+            if t is not None:
+                t.stop()
         self.window.close()
         QApplication.processEvents()
 
@@ -40,38 +46,32 @@ class TestSidebarFix(unittest.TestCase):
         """Test that switching pages does not forcefully toggle sidebar"""
         # 1. Timer NOT running. Sidebar 85.
         self.window.switch_page(0)
-        # Should stay 85 (no auto-hide triggered by switch)
-        print(f"[Timer Stopped] Width after switch to 0: {self.window.sidebar.width()}")
         self.assertEqual(self.window.sidebar.width(), 85)
-        
-        # 2. Start Timer. Sidebar hides to 4.
-        self.window.toggle_timer()
+
+        # 2. Start Timer. Sidebar hides to 0.
+        with patch.object(DataManager, 'save_data', return_value=None):
+            self.window.toggle_timer()
         self.timer.timer.stop()  # Stop real tick to prevent auto-finish loop
-        self.window.sidebar.setFixedWidth(0) # Simulate animation end
-        
+        self.window.sidebar.setFixedWidth(0)
+
         # 3. Hover (Expand to 85)
         event = QEvent(QEvent.Type.Enter)
         self.window.eventFilter(self.window.sidebar, event)
-        self.window.sidebar.setFixedWidth(85) # Simulate animation end
-        
-        # 4. Switch to Page 1 (Tasks) while hovering
+        self.window.sidebar.setFixedWidth(85)
+
+        # 4. Switch to Page 1 while hovering — should stay 85
         self.window.switch_page(1)
-        # Should stay 85 (because we are hovering)
-        print(f"[Timer Running, Hovering] Width after switch to 1: {self.window.sidebar.width()}")
         self.assertEqual(self.window.sidebar.width(), 85)
-        
+
         # 5. Leave Hover
         event = QEvent(QEvent.Type.Leave)
         self.window.eventFilter(self.window.sidebar, event)
-        
-        # Manually trigger the hide check (simulating timer timeout)
-        # Move window to ensure cursor (wherever it is) is likely outside the sidebar rect
+
         self.window.move(10000, 10000)
         self.window.check_and_hide_sidebar()
-        
-        # Should animate to 0
-        print(f"[Leave Hover] Target: {self.window.anim_min.endValue()}")
+
         self.assertEqual(self.window.anim_min.endValue(), 0)
+
 
 if __name__ == '__main__':
     unittest.main()
