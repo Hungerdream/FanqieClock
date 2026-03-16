@@ -50,40 +50,43 @@ class TestResponsiveSidebar(unittest.TestCase):
 
     def test_responsive_collapse(self):
         """Test that sidebar collapses when window width < 1200px"""
-        # 先展开侧边栏，确保初始宽度不为0（避免 animate_sidebar 提前 return）
+        from unittest.mock import patch as mpatch
+        from PyQt6.QtGui import QResizeEvent
+
+        # 先展开侧边栏，确保初始宽度不为 0
         self.window.sidebar.setMinimumWidth(85)
         self.window.sidebar.setMaximumWidth(85)
-        self.window.resize(1300, 800)
         QApplication.processEvents()
 
-        from PyQt6.QtGui import QResizeEvent
-        event = QResizeEvent(QSize(1000, 800), QSize(1300, 800))
-        self.window.resizeEvent(event)
-        QApplication.processEvents()
+        # 用 mock 捕获 animate_sidebar 的调用参数，避免依赖异步动画状态
+        with mpatch.object(self.window, 'animate_sidebar', wraps=self.window.animate_sidebar) as mock_anim:
+            event = QResizeEvent(QSize(1000, 800), QSize(1300, 800))
+            self.window.resizeEvent(event)
+            QApplication.processEvents()
 
-        # 检查动画目标值或最终宽度
-        if hasattr(self.window, 'anim_min'):
-            self.assertEqual(self.window.anim_min.endValue(), 0)
-        else:
-            # 没有动画说明宽度已经是目标值
-            self.assertEqual(self.window.sidebar.width(), 0)
+        mock_anim.assert_called()
+        called_width = mock_anim.call_args[0][0]
+        self.assertEqual(called_width, 0, f"Expected animate_sidebar(0) for collapse, got animate_sidebar({called_width})")
 
     def test_responsive_expand(self):
         """Test that sidebar expands when window width >= 1200px"""
+        from unittest.mock import patch as mpatch
+        from PyQt6.QtGui import QResizeEvent
+
+        # 先折叠侧边栏，确保初始宽度为 0
         self.window._last_compact_mode = True
         self.window.sidebar.setMinimumWidth(0)
         self.window.sidebar.setMaximumWidth(0)
-
-        from PyQt6.QtGui import QResizeEvent
-        event = QResizeEvent(QSize(1250, 800), QSize(1000, 800))
-        self.window.resizeEvent(event)
         QApplication.processEvents()
 
-        # 检查动画目标值或最终宽度
-        if hasattr(self.window, 'anim_min'):
-            self.assertEqual(self.window.anim_min.endValue(), 85)
-        else:
-            self.assertEqual(self.window.sidebar.width(), 85)
+        with mpatch.object(self.window, 'animate_sidebar', wraps=self.window.animate_sidebar) as mock_anim:
+            event = QResizeEvent(QSize(1250, 800), QSize(1000, 800))
+            self.window.resizeEvent(event)
+            QApplication.processEvents()
+
+        mock_anim.assert_called()
+        called_width = mock_anim.call_args[0][0]
+        self.assertEqual(called_width, 85, f"Expected animate_sidebar(85) for expand, got animate_sidebar({called_width})")
 
     def test_manual_toggle_persistence(self):
         """Test that manual toggle saves state"""
