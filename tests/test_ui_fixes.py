@@ -58,6 +58,7 @@ class TestUIBugs(unittest.TestCase):
 
         # Click button once
         self.window.start_btn.click()
+        self.window.timer.timer.stop()  # Stop real tick to prevent auto-finish loop
 
         # If connected once: timer should be running.
         # If connected twice: start + pause = stopped (incorrect behavior).

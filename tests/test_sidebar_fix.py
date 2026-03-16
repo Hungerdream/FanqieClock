@@ -46,6 +46,7 @@ class TestSidebarFix(unittest.TestCase):
         
         # 2. Start Timer. Sidebar hides to 4.
         self.window.toggle_timer()
+        self.timer.timer.stop()  # Stop real tick to prevent auto-finish loop
         self.window.sidebar.setFixedWidth(0) # Simulate animation end
         
         # 3. Hover (Expand to 85)

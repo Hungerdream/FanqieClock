@@ -23,9 +23,10 @@ class TestSidebarRobustness(unittest.TestCase):
         self.timer = PomodoroTimer()
         self.window = MainWindow(self.timer)
         self.window.show()
-        # Enable auto-hide and ensure timer is running for event filter logic
+        # Enable auto-hide and mark timer as running without actually ticking
         self.window.auto_hide_sidebar_toggle.setChecked(True)
-        self.timer.start() 
+        self.timer.start()
+        self.timer.timer.stop()  # Stop real QTimer to prevent auto-finish loop
         self.window.sidebar.setFixedWidth(0) # Start collapsed
         QApplication.processEvents()
 
