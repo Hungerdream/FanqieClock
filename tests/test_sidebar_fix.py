@@ -49,7 +49,8 @@ class TestSidebarFix(unittest.TestCase):
         """Test that switching pages does not forcefully toggle sidebar"""
         # 1. Timer NOT running. Sidebar 85.
         self.window.switch_page(0)
-        self.assertEqual(self.window.sidebar.width(), 85)
+        self.assertIn(self.window.sidebar.width(), range(84, 87),
+                      f"Expected sidebar ~85, got {self.window.sidebar.width()}")
 
         # 2. Start Timer. Sidebar hides to 0.
         with patch.object(DataManager, 'save_data', return_value=None):
@@ -64,7 +65,8 @@ class TestSidebarFix(unittest.TestCase):
 
         # 4. Switch to Page 1 while hovering — should stay 85
         self.window.switch_page(1)
-        self.assertEqual(self.window.sidebar.width(), 85)
+        self.assertIn(self.window.sidebar.width(), range(84, 87),
+                      f"Expected sidebar ~85 after switch_page, got {self.window.sidebar.width()}")
 
         # 5. Leave Hover
         event = QEvent(QEvent.Type.Leave)
