@@ -11,10 +11,10 @@ class TestDataManager(unittest.TestCase):
         self.test_filename = f"test_data_{self.id().split('.')[-1]}.json"
         if os.path.exists(self.test_filename):
             try: os.remove(self.test_filename)
-            except: pass
+            except OSError: pass
         if os.path.exists(self.test_filename + ".tmp"):
             try: os.remove(self.test_filename + ".tmp")
-            except: pass
+            except OSError: pass
         self.dm = DataManager(self.test_filename)
 
     def tearDown(self):
@@ -23,10 +23,10 @@ class TestDataManager(unittest.TestCase):
         time.sleep(0.05)
         if os.path.exists(self.test_filename):
             try: os.remove(self.test_filename)
-            except: pass
+            except OSError: pass
         if os.path.exists(self.test_filename + ".tmp"):
             try: os.remove(self.test_filename + ".tmp")
-            except: pass
+            except OSError: pass
 
     def test_default_data(self):
         data = self.dm.get_default_data()

@@ -36,7 +36,6 @@ class PomodoroApp:
         # Set AppUserModelID for Windows Taskbar Icon
         myappid = 'Trae.FanqieClock.App.1.0' # arbitrary string
         try:
-            import ctypes
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
         except Exception:
             pass # Fails on non-Windows
@@ -115,9 +114,10 @@ class PomodoroApp:
 
     def show_compact(self):
         self.main_window.hide()
-        # Position floating window near the top right of the screen
-        screen = QApplication.primaryScreen().geometry()
-        self.floating_window.move(screen.width() - 250, 50)
+        # Position floating window near the top right of the current screen
+        screen = self.main_window.screen() or QApplication.primaryScreen()
+        screen_geo = screen.geometry()
+        self.floating_window.move(screen_geo.x() + screen_geo.width() - 250, screen_geo.y() + 50)
         self.floating_window.show()
 
     def show_main(self):

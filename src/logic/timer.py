@@ -1,10 +1,17 @@
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal, QDateTime, QRunnable, QThreadPool
-import winsound
+
+try:
+    import winsound
+    _WINSOUND_AVAILABLE = True
+except ImportError:
+    winsound = None
+    _WINSOUND_AVAILABLE = False
 
 class SoundWorker(QRunnable):
     def run(self):
         try:
-            winsound.MessageBeep(winsound.MB_ICONASTERISK)
+            if _WINSOUND_AVAILABLE:
+                winsound.MessageBeep(winsound.MB_ICONASTERISK)
         except Exception as e:
             print(f"Sound playback error: {e}")
 
@@ -84,7 +91,6 @@ class PomodoroTimer(QObject):
         self._finish_session()
 
     def _finish_session(self):
-        was_work = self.current_mode == 'work'
         self.pause()
         self._play_sound()
         self.finished.emit()

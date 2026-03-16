@@ -4,16 +4,17 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QAbstractItemView, QDialog, QFormLayout, QSpinBox,
                              QTableWidget, QTableWidgetItem, QHeaderView, 
                              QGraphicsOpacityEffect, QProgressBar, QSizePolicy,
-                             QCheckBox, QGridLayout, QMessageBox, QFileDialog, QMenu)
-from PyQt6.QtWidgets import QApplication
+                             QCheckBox, QGridLayout, QMessageBox, QFileDialog, QMenu, QStackedLayout,
+                             QApplication)
 from PyQt6.QtGui import QAction
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPropertyAnimation, QEasingCurve, QDate, QEvent, QParallelAnimationGroup, QLocale, QSizeF, QTimer, QPoint
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPropertyAnimation, QEasingCurve, QDate, QEvent, QParallelAnimationGroup, QLocale, QSizeF, QTimer, QPoint, QRect
 from PyQt6.QtGui import QColor, QFont, QIcon, QTextDocument, QPageSize, QPdfWriter, QCursor, QPixmap
+import sys, os
+import uuid
 from logic.timer import PomodoroTimer
 from logic.data_manager import DataManager
 from logic.quote_worker import QuoteWorker
 from ui.widgets import CircularProgressBar, KanbanItemWidget, KanbanList, LongBreakOverlay, SmoothButton, NumberControl
-import sys, os
 
 def get_resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -55,7 +56,6 @@ class MainWindow(QMainWindow):
     def changeEvent(self, event):
         if event.type() == QEvent.Type.WindowStateChange:
             if self.windowState() & Qt.WindowState.WindowMinimized:
-                from PyQt6.QtCore import QTimer
                 QTimer.singleShot(0, self.switch_to_compact.emit)
         super().changeEvent(event)
 
@@ -106,10 +106,11 @@ class MainWindow(QMainWindow):
         self.sidebar_hide_timer.timeout.connect(self.check_and_hide_sidebar)
         
         # Sidebar Hover Polling Timer (For wider trigger area)
+        # Only runs when sidebar is collapsed, to detect hot-zone entry
         self.sidebar_hover_timer = QTimer()
         self.sidebar_hover_timer.setInterval(50) # Check every 50ms
         self.sidebar_hover_timer.timeout.connect(self.check_sidebar_hover)
-        self.sidebar_hover_timer.start() # Always run, check logic inside
+        self.sidebar_hover_timer.start() # Will self-stop when sidebar expands
         
         self.nav_btns = []
         
@@ -302,13 +303,17 @@ class MainWindow(QMainWindow):
         self.progress_bar.set_bg_color("#F0F0F0")
         self.progress_bar.show()
         
-        # Overlay Timer Label
+        # Stacked Layout for Timer and Long Break Overlay
+        self.display_stack = QStackedLayout()
+        self.progress_bar.layout.addLayout(self.display_stack)
+
+        # Timer Label (in the stack)
         self.timer_label = QLabel("25:00")
         self.timer_label.setObjectName("TimerLabel")
         self.timer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.timer_label.setStyleSheet("font-size: 96px; font-weight: bold; color: #1A1A1A; font-family: 'Segoe UI', sans-serif; background: transparent;")
-        
-        self.progress_bar.layout.addWidget(self.timer_label)
+        self.display_stack.addWidget(self.timer_label)
+
         progress_layout.addWidget(self.progress_bar)
         
         container_layout.addWidget(progress_container)
@@ -396,7 +401,6 @@ class MainWindow(QMainWindow):
 
     def record_interruption(self, type_name):
         self.data_manager.record_interruption(type_name)
-        from PyQt6.QtCore import QTimer
         self.mode_label.setText(f"已记录：{'内部' if type_name=='internal' else '外部'}打断")
         QTimer.singleShot(1500, lambda: self.update_mode_display(self.timer.current_mode))
 
@@ -925,9 +929,10 @@ class MainWindow(QMainWindow):
         # Polling for "Hot Zone" trigger
         # Allow expanding if sidebar is collapsed, regardless of timer state
         
-        # Check if sidebar is already expanded (or expanding)
+        # If sidebar is already expanded, stop the polling timer — no need to poll
         if self.sidebar.width() > 50:
-            return # Already expanded, let Leave event handle hide
+            self.sidebar_hover_timer.stop()
+            return
             
         cursor_pos = QCursor.pos()
         local_pos = self.mapFromGlobal(cursor_pos)
@@ -987,6 +992,9 @@ class MainWindow(QMainWindow):
         self.anim_group = QParallelAnimationGroup()
         self.anim_group.addAnimation(self.anim_min)
         self.anim_group.addAnimation(self.anim_max)
+        # When sidebar collapses back to 0, restart hover polling
+        if target_width == 0:
+            self.anim_group.finished.connect(lambda: self.sidebar_hover_timer.start())
         self.anim_group.start()
 
     def start_focus_on_task(self, task_data):
@@ -1003,7 +1011,6 @@ class MainWindow(QMainWindow):
 
     def toggle_timer(self):
         if self.timer.is_running:
-            from PyQt6.QtWidgets import QMessageBox
             reply = QMessageBox.question(
                 self, '放弃当前番茄钟？',
                 '根据番茄工作法，番茄钟一旦开始就不应暂停。确定要放弃当前这一组计时吗？',
@@ -1047,7 +1054,7 @@ class MainWindow(QMainWindow):
             self.mode_label.setText("正在专注")
             self.work_info.setProperty("class", "InfoLabelActive")
             self.break_info.setProperty("class", "InfoLabel")
-            self.long_break_overlay.hide()
+            self.display_stack.setCurrentWidget(self.timer_label)
         elif mode == 'long_break':
             self.mode_label.setText("正在长休息")
             self.work_info.setProperty("class", "InfoLabel")
@@ -1055,15 +1062,14 @@ class MainWindow(QMainWindow):
             # Update break info text for long break
             mins = self.timer.long_break_seconds // 60
             self.break_info.setText(f"长休 {mins:02d}:00")
-            self.long_break_overlay.show()
-            self.long_break_overlay.raise_()
+            self.display_stack.setCurrentWidget(self.timer_label) # Show timer, not overlay
         else: # break
             self.mode_label.setText("正在休息")
             self.work_info.setProperty("class", "InfoLabel")
             self.break_info.setProperty("class", "InfoLabelActive")
             mins = self.timer.break_seconds // 60
             self.break_info.setText(f"短休 {mins:02d}:00")
-            self.long_break_overlay.hide()
+            self.display_stack.setCurrentWidget(self.timer_label)
         
         # Update play/pause button icon based on timer state
         self.update_play_pause_button()
@@ -1127,7 +1133,6 @@ class MainWindow(QMainWindow):
             # Let's let DataManager generate ID if missing.
             # For now, generate ID here or rely on list reload. 
             # Better to be explicit.
-            import uuid
             task_data["id"] = str(uuid.uuid4())
             
             self.kanban_cols[key].add_task_item(task_data)
@@ -1180,7 +1185,7 @@ class MainWindow(QMainWindow):
             menu = QMenu(self.notes_table)
             
             delete_action = QAction("删除笔记", self)
-            delete_action.setIcon(QIcon("src/resources/icon_delete_new.svg"))
+            delete_action.setIcon(QIcon(get_resource_path("resources/icon_delete_new.svg")))
             # Use closure to capture row index, but delete_note expects logic index
             # The row index in table might differ from data list if filtered?
             # Yes, filter logic just skips insertion, so table rows match displayed items.

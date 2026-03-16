@@ -37,6 +37,9 @@ env/
 
 # Project
 data.json
+# Exclude any generated/test data JSON files to prevent user data leakage
+*_data.json
+test_*.json
 *.log
 *.spec
 

@@ -90,11 +90,11 @@ class SmoothButton(QPushButton):
         # Draw Icon
         if not self.icon().isNull():
             icon_size = self.iconSize()
-            # Calculate centered position
+            # Calculate centered position rect
             x = (self.width() - icon_size.width()) / 2
             y = (self.height() - icon_size.height()) / 2
-            
-            self.icon().paint(painter, int(x), int(y), icon_size.width(), icon_size.height())
+            from PyQt6.QtCore import QRect
+            self.icon().paint(painter, QRect(int(x), int(y), icon_size.width(), icon_size.height()))
 
 class CircularProgressBar(QWidget):
     def __init__(self, parent=None):
@@ -105,10 +105,10 @@ class CircularProgressBar(QWidget):
         self._bg_color = QColor("#F0F0F0")
         self.setMinimumSize(400, 400)
         
-        # Layout for centered content
-        self.layout = QVBoxLayout(self)
-        self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        # Layout for centered content (renamed to avoid shadowing QWidget.layout())
+        self.content_layout = QVBoxLayout(self)
+        self.content_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
 
     @pyqtProperty(float)
     def value(self):
