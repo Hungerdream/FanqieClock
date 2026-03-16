@@ -305,7 +305,7 @@ class MainWindow(QMainWindow):
         
         # Stacked Layout for Timer and Long Break Overlay
         self.display_stack = QStackedLayout()
-        self.progress_bar.layout.addLayout(self.display_stack)
+        self.progress_bar.content_layout.addLayout(self.display_stack)
 
         # Timer Label (in the stack)
         self.timer_label = QLabel("25:00")
