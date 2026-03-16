@@ -38,10 +38,13 @@ class TestResponsiveSidebar(unittest.TestCase):
     def tearDown(self):
         self.timer.timer.stop()
         self.timer.is_running = False
-        for attr in ('sidebar_hide_timer', 'sidebar_poll_timer'):
+        for attr in ('sidebar_hide_timer', 'sidebar_hover_timer'):
             t = getattr(self.window, attr, None)
             if t is not None:
                 t.stop()
+        if hasattr(self.window, 'quote_worker') and self.window.quote_worker.isRunning():
+            self.window.quote_worker.quit()
+            self.window.quote_worker.wait(1000)
         self.window.close()
         QApplication.processEvents()
 
