@@ -50,25 +50,40 @@ class TestResponsiveSidebar(unittest.TestCase):
 
     def test_responsive_collapse(self):
         """Test that sidebar collapses when window width < 1200px"""
+        # 先展开侧边栏，确保初始宽度不为0（避免 animate_sidebar 提前 return）
+        self.window.sidebar.setMinimumWidth(85)
+        self.window.sidebar.setMaximumWidth(85)
         self.window.resize(1300, 800)
         QApplication.processEvents()
 
         from PyQt6.QtGui import QResizeEvent
         event = QResizeEvent(QSize(1000, 800), QSize(1300, 800))
         self.window.resizeEvent(event)
+        QApplication.processEvents()
 
-        self.assertEqual(self.window.anim_min.endValue(), 0)
+        # 检查动画目标值或最终宽度
+        if hasattr(self.window, 'anim_min'):
+            self.assertEqual(self.window.anim_min.endValue(), 0)
+        else:
+            # 没有动画说明宽度已经是目标值
+            self.assertEqual(self.window.sidebar.width(), 0)
 
     def test_responsive_expand(self):
         """Test that sidebar expands when window width >= 1200px"""
         self.window._last_compact_mode = True
-        self.window.sidebar.setFixedWidth(0)
+        self.window.sidebar.setMinimumWidth(0)
+        self.window.sidebar.setMaximumWidth(0)
 
         from PyQt6.QtGui import QResizeEvent
         event = QResizeEvent(QSize(1250, 800), QSize(1000, 800))
         self.window.resizeEvent(event)
+        QApplication.processEvents()
 
-        self.assertEqual(self.window.anim_min.endValue(), 85)
+        # 检查动画目标值或最终宽度
+        if hasattr(self.window, 'anim_min'):
+            self.assertEqual(self.window.anim_min.endValue(), 85)
+        else:
+            self.assertEqual(self.window.sidebar.width(), 85)
 
     def test_manual_toggle_persistence(self):
         """Test that manual toggle saves state"""
