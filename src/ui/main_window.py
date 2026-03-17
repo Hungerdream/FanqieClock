@@ -63,15 +63,15 @@ class MainWindow(QMainWindow):
         """注册全局快捷键（窗口最小化/隐藏时也有效）"""
         self._global_shortcut_triggered.connect(self._handle_global_shortcut)
         if not _KEYBOARD_AVAILABLE:
-            print("[Shortcut] keyboard 库未安装，全局快捷键不可用。仅支持窗口内空格键。")
+            print("[Shortcut] keyboard lib not installed, global hotkey unavailable. Window-focus space key only.")
             return
         try:
             # 空格键：开始/放弃计时
             _keyboard.add_hotkey("space", lambda: self._global_shortcut_triggered.emit("space"),
                                   suppress=False)
-            print("[Shortcut] 全局快捷键注册成功: Space=开始/暂停")
+            print("[Shortcut] Global hotkey registered: Space=start/pause")
         except Exception as e:
-            print(f"[Shortcut] 全局快捷键注册失败: {e}")
+            print(f"[Shortcut] Failed to register global hotkey: {e}")
 
     def _handle_global_shortcut(self, key: str):
         """在主线程中处理全局快捷键事件"""
