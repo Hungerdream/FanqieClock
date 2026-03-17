@@ -1,2 +1,4 @@
 PyQt6==6.10.2
 requests==2.32.5
+pygame>=2.6.0
+keyboard>=0.13.5

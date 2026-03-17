@@ -1,0 +1,10 @@
+FF                                                                       [100%]
+================================== FAILURES ===================================
+E   AssertionError: 4 != 1
+C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\case.py:866: AssertionError: 4 != 1
+E   AssertionError: False is not true : Spinbox locale is 'zh_HK', which may produce non-Arabic digits. Consider explicitly setting spinbox.setLocale(QLocale(QLocale.Language.English)).
+C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\unittest\case.py:715: AssertionError: False is not true : Spinbox locale is 'zh_HK', which may produce non-Arabic digits. Consider explicitly setting spinbox.setLocale(QLocale(QLocale.Language.English)).
+=========================== short test summary info ===========================
+FAILED tests/test_integration.py::TestIntegration::test_kanban_task_focus - A...
+FAILED tests/test_ui_fixes.py::TestUIBugs::test_settings_numerals - Assertion...
+2 failed in 2.13s

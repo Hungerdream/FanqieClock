@@ -152,7 +152,13 @@ class DataManager(QObject):
                 "work_mins": 25,
                 "break_mins": 5,
                 "long_break_mins": 15,
+                "long_break_interval": 4,
                 "sound_enabled": True,
+                "sound_work": None,            # 工作结束提示音路径
+                "sound_break": None,           # 短休息结束提示音路径
+                "sound_long_break": None,      # 长休息结束提示音路径
+                "tick_enabled_work": False,    # 工作阶段滴答声开关
+                "tick_enabled_break": False,   # 休息阶段滴答声开关
                 "white_noise_enabled": False,
                 "auto_hide_sidebar": True,
                 "sidebar_manual_state": None, # None=Auto, 'collapsed', 'expanded'
