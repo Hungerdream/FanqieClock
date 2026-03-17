@@ -6,9 +6,12 @@ import time
 import shutil
 from logic.data_manager import DataManager
 
+_TMP_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tmp")
+os.makedirs(_TMP_DIR, exist_ok=True)
+
 class TestDataManager(unittest.TestCase):
     def setUp(self):
-        self.test_filename = f"test_data_{self.id().split('.')[-1]}.json"
+        self.test_filename = os.path.join(_TMP_DIR, f"test_data_{self.id().split('.')[-1]}.json")
         if os.path.exists(self.test_filename):
             try: os.remove(self.test_filename)
             except OSError: pass

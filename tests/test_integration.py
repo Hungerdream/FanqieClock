@@ -134,7 +134,7 @@ class TestIntegration(unittest.TestCase):
 
         with patch.object(DataManager, 'save_data', return_value=None), \
              patch.object(DataManager, 'save_data_sync', return_value=None):
-            window.save_settings()
+            window._auto_save_settings()
 
         self.assertEqual(timer.work_seconds, 50 * 60)
         self.assertEqual(timer.break_seconds, 10 * 60)

@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QTableWidget, QTableWidgetItem, QHeaderView, 
                              QGraphicsOpacityEffect, QProgressBar, QSizePolicy,
                              QCheckBox, QGridLayout, QMessageBox, QFileDialog, QMenu, QStackedLayout,
-                             QApplication)
+                             QApplication, QScrollArea)
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPropertyAnimation, QEasingCurve, QDate, QEvent, QParallelAnimationGroup, QTimer
 from PyQt6.QtGui import QColor, QFont, QIcon, QTextDocument, QPageSize, QPdfWriter, QCursor, QPixmap
@@ -15,6 +15,14 @@ from logic.timer import PomodoroTimer
 from logic.data_manager import DataManager
 from logic.quote_worker import QuoteWorker
 from ui.widgets import CircularProgressBar, KanbanItemWidget, KanbanList, LongBreakOverlay, SmoothButton, NumberControl
+from ui.chart_widgets import BarChartWidget, HeatmapWidget
+
+# 全局快捷键（可选依赖）
+try:
+    import keyboard as _keyboard
+    _KEYBOARD_AVAILABLE = True
+except ImportError:
+    _KEYBOARD_AVAILABLE = False
 
 def get_resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -33,6 +41,8 @@ def get_resource_path(relative_path):
 
 class MainWindow(QMainWindow):
     switch_to_compact = pyqtSignal()
+    # 全局快捷键触发信号（keyboard 钩子在子线程，需要信号切回主线程）
+    _global_shortcut_triggered = pyqtSignal(str)
 
     def __init__(self, timer: PomodoroTimer):
         super().__init__()
@@ -42,11 +52,42 @@ class MainWindow(QMainWindow):
         self.init_ui()
         self.load_saved_data()
         self.setup_connections()
+        self._setup_global_shortcuts()
         
         # Fetch Daily Quote
         self.quote_worker = QuoteWorker()
         self.quote_worker.quote_fetched.connect(self.update_daily_quote)
         self.quote_worker.start()
+
+    def _setup_global_shortcuts(self):
+        """注册全局快捷键（窗口最小化/隐藏时也有效）"""
+        self._global_shortcut_triggered.connect(self._handle_global_shortcut)
+        if not _KEYBOARD_AVAILABLE:
+            print("[Shortcut] keyboard 库未安装，全局快捷键不可用。仅支持窗口内空格键。")
+            return
+        try:
+            # 空格键：开始/放弃计时
+            _keyboard.add_hotkey("space", lambda: self._global_shortcut_triggered.emit("space"),
+                                  suppress=False)
+            print("[Shortcut] 全局快捷键注册成功: Space=开始/暂停")
+        except Exception as e:
+            print(f"[Shortcut] 全局快捷键注册失败: {e}")
+
+    def _handle_global_shortcut(self, key: str):
+        """在主线程中处理全局快捷键事件"""
+        if key == "space":
+            # 如果焦点在文本输入框，忽略（避免打断正常输入）
+            focused = QApplication.focusWidget()
+            if isinstance(focused, (QLineEdit, QTextEdit)):
+                return
+            # 切换到计时页并触发 toggle
+            if self.content_stack.currentIndex() != 0:
+                self.switch_page(0)
+                # 如果窗口隐藏/最小化，先恢复
+                if self.isMinimized() or not self.isVisible():
+                    self.showNormal()
+                    self.activateWindow()
+            self.toggle_timer()
 
     def update_daily_quote(self, content, author):
         if hasattr(self, 'quote_label') and hasattr(self, 'quote_author'):
@@ -72,6 +113,12 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'quote_worker') and self.quote_worker.isRunning():
                 self.quote_worker.quit()
                 self.quote_worker.wait(2000)  # Wait up to 2s
+            # 清理全局快捷键钩子
+            if _KEYBOARD_AVAILABLE:
+                try:
+                    _keyboard.unhook_all()
+                except Exception:
+                    pass
             # If triggered by app.quit(), save data and let it close
             try:
                 self.data_manager.save_data_sync()
@@ -567,7 +614,23 @@ class MainWindow(QMainWindow):
         return page
 
     def create_stats_page(self):
+        # 外层容器（直接放入 content_stack）
+        outer = QWidget()
+        outer_layout = QVBoxLayout(outer)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        # 滚动区域，内容超出时可以滚动，避免卡片被压缩
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setStyleSheet("QScrollArea { background: transparent; border: none; }")
+        outer_layout.addWidget(scroll)
+
         page = QWidget()
+        page.setStyleSheet("background: transparent;")
+        scroll.setWidget(page)
         layout = QVBoxLayout(page)
         layout.setContentsMargins(50, 40, 50, 40)
         
@@ -614,7 +677,29 @@ class MainWindow(QMainWindow):
         cards_layout.addWidget(self.stat_interrupts)
         
         layout.addLayout(cards_layout)
-        layout.addSpacing(40)
+        layout.addSpacing(30)
+
+        # ── 近7天柱状图 ──────────────────────────────────────────────────
+        chart_title = QLabel("近 7 天番茄数")
+        chart_title.setStyleSheet("font-size: 15px; font-weight: 600; color: #444; margin-bottom: 6px;")
+        layout.addWidget(chart_title)
+
+        self.bar_chart = BarChartWidget()
+        self.bar_chart.setFixedHeight(180)
+        layout.addWidget(self.bar_chart)
+
+        layout.addSpacing(20)
+
+        # ── 热力图（Pomotroid 年度视图，含年份导航）────────────────────
+        heatmap_title = QLabel("历史打卡热力图")
+        heatmap_title.setStyleSheet("font-size: 15px; font-weight: 600; color: #444; margin-bottom: 2px;")
+        layout.addWidget(heatmap_title)
+
+        self.heatmap = HeatmapWidget()
+        # 不设固定高度，让其自适应（内部画布会计算自身高度）
+        layout.addWidget(self.heatmap)
+
+        layout.addSpacing(30)
         
         # Today's Detail
         self.today_stat_label = QLabel("今日专注：0个番茄")
@@ -642,11 +727,14 @@ class MainWindow(QMainWindow):
             QListWidget::item:hover { background: #FAFAFA; border-color: #EEE; }
         """)
         layout.addWidget(self.history_list)
-        
-        return page
+        layout.addStretch()
+
+        return outer
 
     def create_stat_card(self, title, value, icon, bg_color):
         card = QFrame()
+        card.setFixedHeight(140)
+        card.setMinimumWidth(160)
         card.setStyleSheet(f"""
             QFrame {{
                 background-color: {bg_color};
@@ -658,161 +746,313 @@ class MainWindow(QMainWindow):
             }}
         """)
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(25, 25, 25, 25)
-        
+        layout.setContentsMargins(20, 18, 20, 18)
+        layout.setSpacing(4)
+
         icon_label = QLabel(icon)
-        icon_label.setStyleSheet("font-size: 32px; background: transparent;")
-        
+        icon_label.setStyleSheet("font-size: 28px; background: transparent;")
+
         val_label = QLabel(value)
-        val_label.setStyleSheet("font-size: 28px; font-weight: bold; color: #333; background: transparent; margin-top: 10px;")
-        
+        val_label.setStyleSheet("font-size: 26px; font-weight: bold; color: #333; background: transparent; margin-top: 6px;")
+
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-size: 14px; color: #777; background: transparent;")
-        
+        title_label.setStyleSheet("font-size: 13px; color: #777; background: transparent;")
+
         layout.addWidget(icon_label, 0, Qt.AlignmentFlag.AlignRight)
         layout.addWidget(val_label)
         layout.addWidget(title_label)
-        
+
         # Store label reference for updates
         card.val_label = val_label
         return card
 
     def create_settings_page(self):
+        """Pomotroid 风格：左侧导航列表 + 右侧分页内容区"""
         page = QWidget()
-        layout = QVBoxLayout(page)
-        layout.setContentsMargins(100, 60, 100, 60)
-        
-        title = QLabel("设置")
-        title.setProperty("class", "KanbanTitle")
-        title.setStyleSheet("font-size: 28px; margin-bottom: 20px;")
-        layout.addWidget(title)
-        
-        # Settings Container
-        settings_container = QWidget()
-        settings_container.setObjectName("SettingsContainer")
-        settings_container.setStyleSheet("""
-            #SettingsContainer {
-                background-color: #FFFFFF;
-                border: 1px solid #EEEEEE;
-                border-radius: 20px;
+        page.setObjectName("SettingsPage")
+        outer = QHBoxLayout(page)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        # ── 公共样式 ─────────────────────────────────────────────────────────
+        icon_check_path = get_resource_path("resources/icon_check.svg").replace("\\", "/")
+        _FONT_CSS = '"Segoe UI", "Microsoft YaHei", sans-serif'
+        checkbox_style = f"""
+            QCheckBox {{ font-size: 14px; color: #444; spacing: 8px; font-family: {_FONT_CSS}; }}
+            QCheckBox::indicator {{ width: 20px; height: 20px; border-radius: 5px; border: 1.5px solid #CCC; background: #FFF; }}
+            QCheckBox::indicator:checked {{ background-color: #1A1A1A; border-color: #1A1A1A; image: url('{icon_check_path}'); }}
+        """
+
+        # ── 左侧导航 ─────────────────────────────────────────────────────────
+        nav_panel = QWidget()
+        nav_panel.setObjectName("SettingsNavPanel")
+        nav_panel.setFixedWidth(180)
+        nav_panel.setStyleSheet("""
+            QWidget#SettingsNavPanel {
+                background-color: #F8F8F8;
+                border-right: 1px solid #EEEEEE;
             }
         """)
-        
-        # Use GridLayout for better alignment
-        container_layout = QGridLayout(settings_container)
-        container_layout.setContentsMargins(50, 50, 50, 50)
-        container_layout.setVerticalSpacing(30)
-        container_layout.setHorizontalSpacing(40)
-        
-        # Row 1: Work Duration
-        work_label = QLabel("专注时长")
-        work_label.setStyleSheet("font-size: 16px; color: #333; font-weight: bold;")
+        nav_layout = QVBoxLayout(nav_panel)
+        nav_layout.setContentsMargins(0, 40, 0, 20)
+        nav_layout.setSpacing(2)
+
+        nav_items = ["计时器", "通知", "系统", "关于"]
+        self._settings_nav_btns = []
+        self._settings_stack = QStackedWidget()
+
+        for i, label in enumerate(nav_items):
+            btn = QPushButton(label)
+            btn.setCheckable(True)
+            btn.setFixedHeight(44)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setStyleSheet("""
+                QPushButton {
+                    text-align: left;
+                    padding: 0 24px;
+                    font-size: 14px;
+                    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+                    color: #666;
+                    background: transparent;
+                    border: none;
+                    border-left: 3px solid transparent;
+                    font-weight: normal;
+                }
+                QPushButton:checked {
+                    color: #1A1A1A;
+                    font-weight: 600;
+                    background-color: rgba(0,0,0,0.04);
+                    border-left: 3px solid #1A1A1A;
+                }
+                QPushButton:hover:!checked {
+                    background-color: rgba(0,0,0,0.03);
+                    color: #333;
+                }
+            """)
+            btn.clicked.connect(lambda _, idx=i: self._switch_settings_tab(idx))
+            nav_layout.addWidget(btn)
+            self._settings_nav_btns.append(btn)
+
+        nav_layout.addStretch()
+        outer.addWidget(nav_panel)
+
+        # ── 右侧内容区 ───────────────────────────────────────────────────────
+        outer.addWidget(self._settings_stack, 1)
+
+        # ── 辅助：滚动容器 ───────────────────────────────────────────────────
+        def make_scroll_page():
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QFrame.Shape.NoFrame)
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            scroll.setStyleSheet("QScrollArea { background: #FFFFFF; } QScrollBar:vertical { width: 6px; }")
+            inner = QWidget()
+            inner.setStyleSheet("background: transparent;")
+            vbox = QVBoxLayout(inner)
+            vbox.setContentsMargins(50, 50, 50, 50)
+            vbox.setSpacing(20)
+            scroll.setWidget(inner)
+            return scroll, vbox
+
+        _FONT = '"Segoe UI", "Microsoft YaHei", sans-serif'
+
+        def make_section_title(text):
+            lbl = QLabel(text)
+            lbl.setStyleSheet(f"font-size: 11px; font-weight: 600; color: #999; letter-spacing: 1px; font-family: {_FONT};")
+            return lbl
+
+        def make_row_item(label_text, desc_text=""):
+            """返回一个包含左侧文本+右侧控件槽位的 HBox"""
+            row = QHBoxLayout()
+            row.setSpacing(16)
+            text_col = QVBoxLayout()
+            text_col.setSpacing(2)
+            lbl = QLabel(label_text)
+            lbl.setStyleSheet(f"font-size: 14px; color: #222; font-weight: 500; font-family: {_FONT};")
+            text_col.addWidget(lbl)
+            if desc_text:
+                desc = QLabel(desc_text)
+                desc.setStyleSheet(f"font-size: 12px; color: #999; font-family: {_FONT};")
+                text_col.addWidget(desc)
+            row.addLayout(text_col, 1)
+            return row
+
+        def make_divider():
+            line = QFrame()
+            line.setFrameShape(QFrame.Shape.HLine)
+            line.setStyleSheet("background: #EEEEEE; border: none; max-height: 1px;")
+            return line
+
+        # ═══════════════════════════════════════════════════════════════════
+        # 页1：计时器
+        # ═══════════════════════════════════════════════════════════════════
+        p1_scroll, p1 = make_scroll_page()
+
+        p1.addWidget(make_section_title("时长"))
+        # 专注时长
+        r_work = make_row_item("专注", "每轮专注工作时长")
         self.work_mins_spin = NumberControl()
         self.work_mins_spin.setRange(1, 120)
         self.work_mins_spin.setSuffix(" 分钟")
-        
-        container_layout.addWidget(work_label, 0, 0)
-        container_layout.addWidget(self.work_mins_spin, 0, 1, Qt.AlignmentFlag.AlignLeft)
-        
-        # Row 2: Break Duration
-        break_label = QLabel("休息时长")
-        break_label.setStyleSheet("font-size: 16px; color: #333; font-weight: bold;")
+        r_work.addWidget(self.work_mins_spin)
+        p1.addLayout(r_work)
+
+        p1.addWidget(make_divider())
+
+        # 短休息时长
+        r_break = make_row_item("短休息", "专注轮结束后的短暂休息")
         self.break_mins_spin = NumberControl()
         self.break_mins_spin.setRange(1, 60)
         self.break_mins_spin.setSuffix(" 分钟")
-        
-        container_layout.addWidget(break_label, 1, 0)
-        container_layout.addWidget(self.break_mins_spin, 1, 1, Qt.AlignmentFlag.AlignLeft)
-        
-        # Row 3: Sound Toggle
-        sound_label = QLabel("提示音")
-        sound_label.setStyleSheet("font-size: 16px; color: #333; font-weight: bold;")
-        self.sound_toggle = QCheckBox("开启结束提示音")
-        icon_check_path = get_resource_path("resources/icon_check.svg").replace("\\", "/")
-        self.sound_toggle.setStyleSheet(f"""
-            QCheckBox {{ font-size: 15px; color: #555; spacing: 8px; }}
-            QCheckBox::indicator {{ width: 22px; height: 22px; border-radius: 6px; border: 1px solid #CCC; }}
-            QCheckBox::indicator:checked {{ background-color: #000000; border-color: #000000; image: url('{icon_check_path}'); }}
-        """)
-        self.sound_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
-        
-        container_layout.addWidget(sound_label, 2, 0)
-        container_layout.addWidget(self.sound_toggle, 2, 1, Qt.AlignmentFlag.AlignLeft)
-        
-        # Row 4: Auto-hide Sidebar Toggle
-        sidebar_behavior_label = QLabel("行为")
-        sidebar_behavior_label.setStyleSheet("font-size: 16px; color: #333; font-weight: bold;")
-        self.auto_hide_sidebar_toggle = QCheckBox("番茄钟开始时自动隐藏侧边栏")
-        self.auto_hide_sidebar_toggle.setStyleSheet(f"""
-            QCheckBox {{ font-size: 15px; color: #555; spacing: 8px; }}
-            QCheckBox::indicator {{ width: 22px; height: 22px; border-radius: 6px; border: 1px solid #CCC; }}
-            QCheckBox::indicator:checked {{ background-color: #000000; border-color: #000000; image: url('{icon_check_path}'); }}
-        """)
-        self.auto_hide_sidebar_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
-        
-        container_layout.addWidget(sidebar_behavior_label, 3, 0)
-        container_layout.addWidget(self.auto_hide_sidebar_toggle, 3, 1, Qt.AlignmentFlag.AlignLeft)
-        
-        # Add column stretch to push everything to the left
-        container_layout.setColumnStretch(2, 1)
+        r_break.addWidget(self.break_mins_spin)
+        p1.addLayout(r_break)
 
-        layout.addWidget(settings_container)
-        layout.addSpacing(30)
-        
-        save_btn = QPushButton("保存设置")
-        save_btn.setObjectName("PrimaryButton")
-        save_btn.setFixedSize(200, 50)
-        save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        save_btn.clicked.connect(self.save_settings)
-        
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-        btn_layout.addWidget(save_btn)
-        btn_layout.addStretch()
-        
-        layout.addLayout(btn_layout)
-        
-        # Sponsorship Section
-        sponsor_container = QWidget()
-        sponsor_layout = QVBoxLayout(sponsor_container)
-        sponsor_layout.setContentsMargins(0, 20, 0, 20)
-        sponsor_layout.setSpacing(10)
-        
-        sponsor_text = QLabel("创作不易，喜欢就请我喝杯咖啡吧~ ☕\n--无论是否赞助，感谢遇见你")
-        sponsor_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        sponsor_text.setStyleSheet("color: #888; font-size: 14px; font-style: italic;")
-        
-        sponsor_btn = QPushButton("我要赞助")
+        p1.addWidget(make_divider())
+
+        # 长休息时长
+        r_long_break = make_row_item("长休息", "每隔若干轮后的长休息时长")
+        self.long_break_mins_spin = NumberControl()
+        self.long_break_mins_spin.setRange(5, 60)
+        self.long_break_mins_spin.setSuffix(" 分钟")
+        r_long_break.addWidget(self.long_break_mins_spin)
+        p1.addLayout(r_long_break)
+
+        p1.addWidget(make_divider())
+
+        # 每N轮长休息
+        r_long_interval = make_row_item("长休息间隔", "每隔几轮专注后触发长休息")
+        self.long_break_interval_spin = NumberControl()
+        self.long_break_interval_spin.setRange(2, 10)
+        self.long_break_interval_spin.setSuffix(" 轮")
+        r_long_interval.addWidget(self.long_break_interval_spin)
+        p1.addLayout(r_long_interval)
+
+        p1.addSpacing(32)
+        p1.addWidget(make_section_title("行为"))
+
+        # 自动隐藏侧边栏
+        r_autohide = make_row_item("自动隐藏侧边栏", "专注开始时折叠侧边栏")
+        self.auto_hide_sidebar_toggle = QCheckBox()
+        self.auto_hide_sidebar_toggle.setStyleSheet(checkbox_style)
+        self.auto_hide_sidebar_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        r_autohide.addWidget(self.auto_hide_sidebar_toggle)
+        p1.addLayout(r_autohide)
+
+        p1.addStretch()
+
+        self._settings_stack.addWidget(p1_scroll)
+
+        # ═══════════════════════════════════════════════════════════════════
+        # 页2：通知（提示音 + 滴答声）
+        # ═══════════════════════════════════════════════════════════════════
+        p2_scroll, p2 = make_scroll_page()
+
+        p2.addWidget(make_section_title("结束提示音"))
+
+        # 提示音总开关
+        r_sound_on = make_row_item("开启提示音", "阶段结束时播放提示音")
+        self.sound_toggle = QCheckBox()
+        self.sound_toggle.setStyleSheet(checkbox_style)
+        self.sound_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        r_sound_on.addWidget(self.sound_toggle)
+        p2.addLayout(r_sound_on)
+
+        p2.addSpacing(32)
+        p2.addWidget(make_section_title("滴答声"))
+
+        # 工作滴答声
+        r_tick_work = make_row_item("工作时段", "专注期间播放滴答声")
+        self.tick_work_toggle = QCheckBox()
+        self.tick_work_toggle.setStyleSheet(checkbox_style)
+        self.tick_work_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        # 勾选变化时立即同步到 timer
+        self.tick_work_toggle.toggled.connect(
+            lambda v: self.timer.set_tick_enabled(v, self.tick_break_toggle.isChecked())
+        )
+        r_tick_work.addWidget(self.tick_work_toggle)
+        p2.addLayout(r_tick_work)
+
+        p2.addWidget(make_divider())
+
+        # 休息滴答声
+        r_tick_break = make_row_item("休息时段", "休息期间播放滴答声")
+        self.tick_break_toggle = QCheckBox()
+        self.tick_break_toggle.setStyleSheet(checkbox_style)
+        self.tick_break_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.tick_break_toggle.toggled.connect(
+            lambda v: self.timer.set_tick_enabled(self.tick_work_toggle.isChecked(), v)
+        )
+        r_tick_break.addWidget(self.tick_break_toggle)
+        p2.addLayout(r_tick_break)
+
+        p2.addStretch()
+
+        self._settings_stack.addWidget(p2_scroll)
+
+        # ═══════════════════════════════════════════════════════════════════
+        # 页3：系统
+        # ═══════════════════════════════════════════════════════════════════
+        p3_scroll, p3 = make_scroll_page()
+        p3.addWidget(make_section_title("系统"))
+
+        r_theme_info = make_row_item("主题", "通过右上角按钮切换深色/浅色模式")
+        p3.addLayout(r_theme_info)
+
+        p3.addStretch()
+        self._settings_stack.addWidget(p3_scroll)
+
+        # ═══════════════════════════════════════════════════════════════════
+        # 页4：关于
+        # ═══════════════════════════════════════════════════════════════════
+        p4_scroll, p4 = make_scroll_page()
+        p4.addWidget(make_section_title("关于"))
+
+        about_lbl = QLabel("FanqieClock · 番茄钟")
+        about_lbl.setStyleSheet(f"font-size: 20px; font-weight: bold; color: #222; font-family: {_FONT};")
+        p4.addWidget(about_lbl)
+
+        author_lbl = QLabel("作者：饿梦")
+        author_lbl.setStyleSheet(f"font-size: 14px; color: #777; margin-top: 4px; font-family: {_FONT};")
+        p4.addWidget(author_lbl)
+
+        p4.addSpacing(24)
+
+        # 赞助
+        sponsor_text = QLabel("创作不易，喜欢就请我喝杯咖啡吧 ☕\n无论是否赞助，感谢遇见你")
+        sponsor_text.setStyleSheet(f"color: #888; font-size: 13px; line-height: 1.6; font-family: {_FONT};")
+        p4.addWidget(sponsor_text)
+
+        sponsor_btn = QPushButton("我要赞助 ❤️")
         sponsor_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        sponsor_btn.setFixedWidth(120)
+        sponsor_btn.setFixedWidth(130)
         sponsor_btn.setStyleSheet("""
             QPushButton {
                 background-color: #FFEBEE;
                 color: #D32F2F;
                 border: 1px solid #FFCDD2;
-                border-radius: 15px;
-                padding: 5px;
+                border-radius: 12px;
+                padding: 6px 12px;
+                font-size: 13px;
                 font-weight: bold;
             }
-            QPushButton:hover {
-                background-color: #FFCDD2;
-            }
+            QPushButton:hover { background-color: #FFCDD2; }
         """)
         sponsor_btn.clicked.connect(self.show_sponsor_dialog)
-        
-        sponsor_layout.addWidget(sponsor_text)
-        sponsor_layout.addWidget(sponsor_btn, 0, Qt.AlignmentFlag.AlignCenter)
-        
-        layout.addWidget(sponsor_container)
-        
-        # Author Info
-        author_label = QLabel("作者：饿梦")
-        author_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        author_label.setStyleSheet("color: #999; font-size: 14px; margin-top: 10px; font-weight: bold;")
-        layout.addWidget(author_label)
-        
-        layout.addStretch()
+        p4.addWidget(sponsor_btn)
+        p4.addStretch()
+        self._settings_stack.addWidget(p4_scroll)
+
+        # 默认显示第一个 tab
+        self._switch_settings_tab(0)
+
         return page
+
+    def _switch_settings_tab(self, index):
+        """切换设置分页"""
+        self._settings_stack.setCurrentIndex(index)
+        for i, btn in enumerate(self._settings_nav_btns):
+            btn.setChecked(i == index)
+
 
     def show_sponsor_dialog(self):
         dialog = QDialog(self)
@@ -865,6 +1105,18 @@ class MainWindow(QMainWindow):
         
         self.data_manager.save_error.connect(self.show_save_error)
 
+        # ── 设置项实时自动保存（任何变动立即生效并持久化）────────────────────
+        self.work_mins_spin.valueChanged.connect(self._auto_save_settings)
+        self.break_mins_spin.valueChanged.connect(self._auto_save_settings)
+        self.long_break_mins_spin.valueChanged.connect(self._auto_save_settings)
+        self.long_break_interval_spin.valueChanged.connect(self._auto_save_settings)
+        self.sound_toggle.toggled.connect(self._auto_save_settings)
+        self.auto_hide_sidebar_toggle.toggled.connect(self._auto_save_settings)
+        # tick toggles 在 create_settings_page 里已连接 set_tick_enabled，
+        # 这里额外连持久化
+        self.tick_work_toggle.toggled.connect(self._auto_save_settings)
+        self.tick_break_toggle.toggled.connect(self._auto_save_settings)
+
     def show_save_error(self, message):
         QMessageBox.warning(self, "数据保存失败", f"无法保存数据，请检查磁盘空间或权限。\n错误信息: {message}")
 
@@ -884,11 +1136,27 @@ class MainWindow(QMainWindow):
         settings = data.get("settings", {})
         self.work_mins_spin.setValue(settings.get("work_mins", 25))
         self.break_mins_spin.setValue(settings.get("break_mins", 5))
+        self.long_break_mins_spin.setValue(settings.get("long_break_mins", 15))
+        self.long_break_interval_spin.setValue(settings.get("long_break_interval", 4))
         self.sound_toggle.setChecked(settings.get("sound_enabled", True))
         self.auto_hide_sidebar_toggle.setChecked(settings.get("auto_hide_sidebar", True))
-        
-        self.timer.set_durations(self.work_mins_spin.value(), self.break_mins_spin.value())
+
+        # 加载滴答声开关（默认开启）
+        self.tick_work_toggle.setChecked(settings.get("tick_enabled_work", True))
+        self.tick_break_toggle.setChecked(settings.get("tick_enabled_break", True))
+
+        self.timer.set_durations(self.work_mins_spin.value(), self.break_mins_spin.value(), self.long_break_mins_spin.value())
+        self.timer.set_long_break_interval(self.long_break_interval_spin.value())
         self.timer.set_sound_enabled(self.sound_toggle.isChecked())
+        self.timer.set_sound_paths(
+            work=settings.get("sound_work"),
+            short_break=settings.get("sound_break"),
+            long_break=settings.get("sound_long_break")
+        )
+        self.timer.set_tick_enabled(
+            work_tick=settings.get("tick_enabled_work", True),
+            break_tick=settings.get("tick_enabled_break", True)
+        )
         
         # Apply saved theme preference
         theme = settings.get("theme", "light")
@@ -1052,7 +1320,7 @@ class MainWindow(QMainWindow):
         mins, secs = divmod(seconds, 60)
         self.timer_label.setText(f"{mins:02d}:{secs:02d}")
         
-        # Update progress line
+        # Update progress line and circular progress bar
         if self.timer.current_mode == 'work':
             total_seconds = self.timer.work_seconds
         elif self.timer.current_mode == 'long_break':
@@ -1062,6 +1330,10 @@ class MainWindow(QMainWindow):
             
         self.progress_line.setMaximum(total_seconds)
         self.progress_line.setValue(total_seconds - seconds)
+        
+        # 修复：同步更新环形进度条（之前一直是满格）
+        self.progress_bar.set_max_value(total_seconds)
+        self.progress_bar.value = total_seconds - seconds
 
     def update_mode_display(self, mode):
         if mode == 'work':
@@ -1333,6 +1605,12 @@ class MainWindow(QMainWindow):
         
         self.today_stat_label.setText(f"🔥 今日专注：{today_data['count']} 个番茄 ({today_data['minutes']} 分钟) | ⚡ 打断：{today_interrupts} 次")
         
+        # 刷新图表
+        if hasattr(self, 'bar_chart'):
+            self.bar_chart.set_data(history)
+        if hasattr(self, 'heatmap'):
+            self.heatmap.set_data(history)
+
         # Update history list
         self.history_list.clear()
         sorted_dates = sorted(history.keys(), reverse=True)[:7] # Show last 7 days
@@ -1434,24 +1712,50 @@ class MainWindow(QMainWindow):
         
         QMessageBox.information(self, "导出成功", f"报告已保存至:\n{filename}")
 
-    def save_settings(self):
+    def _auto_save_settings(self, *_args):
+        """任意设置项变动时自动调用，立即同步到 timer 并持久化。"""
         w = self.work_mins_spin.value()
         b = self.break_mins_spin.value()
+        lb = self.long_break_mins_spin.value()
+        lb_interval = self.long_break_interval_spin.value()
         sound_enabled = self.sound_toggle.isChecked()
         auto_hide = self.auto_hide_sidebar_toggle.isChecked()
-        
+
+        # 读取当前音效路径（从已存储的设置里取，UI 只显示文件名）
+        current_settings = self.data_manager.data.get("settings", {})
+        sound_work = current_settings.get("sound_work")
+        sound_break = current_settings.get("sound_break")
+        sound_long_break = current_settings.get("sound_long_break")
+
         # Preserve current theme setting
-        current_theme = self.data_manager.data.get("settings", {}).get("theme", "light")
+        current_theme = current_settings.get("theme", "light")
         settings = {
             "work_mins": w,
             "break_mins": b,
+            "long_break_mins": lb,
+            "long_break_interval": lb_interval,
             "sound_enabled": sound_enabled,
+            "sound_work": sound_work,
+            "sound_break": sound_break,
+            "sound_long_break": sound_long_break,
+            "tick_enabled_work": self.tick_work_toggle.isChecked(),
+            "tick_enabled_break": self.tick_break_toggle.isChecked(),
             "auto_hide_sidebar": auto_hide,
             "theme": current_theme
         }
         self.data_manager.update_settings(settings)
-        self.timer.set_durations(w, b)
+        self.timer.set_durations(w, b, lb)
+        self.timer.set_long_break_interval(lb_interval)
         self.timer.set_sound_enabled(sound_enabled)
+        self.timer.set_sound_paths(
+            work=sound_work,
+            short_break=sound_break,
+            long_break=sound_long_break
+        )
+        self.timer.set_tick_enabled(
+            work_tick=self.tick_work_toggle.isChecked(),
+            break_tick=self.tick_break_toggle.isChecked()
+        )
 
     def on_theme_toggled(self, checked):
         theme = "dark" if checked else "light"
