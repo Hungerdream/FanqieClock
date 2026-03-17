@@ -30,7 +30,7 @@ class PomodoroApp:
         self.shared_memory = QSharedMemory("FanqieClock_SingleInstance")
         if not self.shared_memory.create(1):
             # Another instance is already running
-            print("番茄钟已经在运行中")
+            print("FanqieClock is already running")
             sys.exit(1)
         
         # Set AppUserModelID for Windows Taskbar Icon

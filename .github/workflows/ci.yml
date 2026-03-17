@@ -38,5 +38,6 @@ jobs:
         PYTHONPATH: src
         QT_QPA_PLATFORM: offscreen
         PYTHONUNBUFFERED: "1"
+        PYTHONUTF8: "1"
       run: |
         python -m pytest tests -v --timeout=30 -p no:cacheprovider 2>&1 || python -m unittest discover tests -v
