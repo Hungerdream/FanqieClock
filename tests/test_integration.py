@@ -102,6 +102,9 @@ class TestIntegration(unittest.TestCase):
         """start_focus_on_task switches to timer page and starts timer."""
         window, timer = self._make_window()
 
+        # Clear q1 to ensure isolation from any pre-loaded disk data
+        window.kanban_cols["q1"].clear()
+
         with patch.object(DataManager, 'save_data', return_value=None):
             from PyQt6.QtWidgets import QLineEdit
             input_field = QLineEdit()
