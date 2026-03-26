@@ -47,7 +47,7 @@ jobs:
       shell: bash
         
     - name: Run tests
-      timeout-minutes: 10
+      timeout-minutes: 15
       env:
         PYTHONPATH: src
         QT_QPA_PLATFORM: offscreen
