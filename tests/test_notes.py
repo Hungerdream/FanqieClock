@@ -107,10 +107,10 @@ class TestNotes(unittest.TestCase):
         self.assertEqual(result['content'], '新内容')
 
     def test_edit_note_table_row_index_stored(self):
-        """refresh_notes_table 时每行的 UserRole 数据应存原始索引"""
+        """refresh_notes_table 时每行的 UserRole 数据应存笔记 UUID"""
         notes = [
-            {'title': '笔记0', 'content': '', 'date': '2026-03-16'},
-            {'title': '笔记1', 'content': '', 'date': '2026-03-16'},
+            {'id': 'uuid-001', 'title': '笔记0', 'content': '', 'date': '2026-03-16'},
+            {'id': 'uuid-002', 'title': '笔记1', 'content': '', 'date': '2026-03-16'},
         ]
         with patch.object(DataManager, 'save_data', return_value=None):
             self.window.data_manager.update_notes(notes)
@@ -119,7 +119,8 @@ class TestNotes(unittest.TestCase):
 
         for row in range(2):
             title_item = self.window.notes_table.item(row, 0)
-            self.assertEqual(title_item.data(Qt.ItemDataRole.UserRole), row)
+            # 现在存储的是 UUID 而不是索引
+            self.assertEqual(title_item.data(Qt.ItemDataRole.UserRole), notes[row]['id'])
 
     # ------------------------------------------------------------------
     # 3. 删除笔记
@@ -127,8 +128,8 @@ class TestNotes(unittest.TestCase):
     def test_delete_note_removes_from_data(self):
         """确认删除后，data 中该笔记应消失"""
         notes = [
-            {'title': '保留', 'content': '', 'date': '2026-03-16'},
-            {'title': '删除我', 'content': '', 'date': '2026-03-16'},
+            {'id': 'keep-uuid', 'title': '保留', 'content': '', 'date': '2026-03-16'},
+            {'id': 'delete-uuid', 'title': '删除我', 'content': '', 'date': '2026-03-16'},
         ]
         with patch.object(DataManager, 'save_data', return_value=None):
             self.window.data_manager.update_notes(notes)
@@ -136,7 +137,7 @@ class TestNotes(unittest.TestCase):
         with patch.object(DataManager, 'save_data', return_value=None), \
              patch.object(QMessageBox, 'question',
                           return_value=QMessageBox.StandardButton.Yes):
-            self.window.delete_note(1)
+            self.window.delete_note('delete-uuid')
 
         remaining = self.window.data_manager.data.get('notes', [])
         self.assertEqual(len(remaining), 1)
@@ -144,29 +145,29 @@ class TestNotes(unittest.TestCase):
 
     def test_delete_note_cancelled(self):
         """取消删除后，data 中笔记数量不变"""
-        notes = [{'title': '不删', 'content': '', 'date': '2026-03-16'}]
+        notes = [{'id': 'keep-uuid', 'title': '不删', 'content': '', 'date': '2026-03-16'}]
         with patch.object(DataManager, 'save_data', return_value=None):
             self.window.data_manager.update_notes(notes)
 
         with patch.object(DataManager, 'save_data', return_value=None), \
              patch.object(QMessageBox, 'question',
                           return_value=QMessageBox.StandardButton.No):
-            self.window.delete_note(0)
+            self.window.delete_note('keep-uuid')
 
         remaining = self.window.data_manager.data.get('notes', [])
         self.assertEqual(len(remaining), 1)
 
     def test_delete_note_out_of_range(self):
-        """越界索引删除不应崩溃"""
+        """不存在的 UUID 删除不应崩溃"""
         with patch.object(DataManager, 'save_data', return_value=None):
             self.window.data_manager.update_notes([])
 
         with patch.object(QMessageBox, 'question',
                           return_value=QMessageBox.StandardButton.Yes):
             try:
-                self.window.delete_note(99)
+                self.window.delete_note('non-existent-uuid')
             except Exception as e:
-                self.fail(f"delete_note(99) raised {e}")
+                self.fail(f"delete_note(non-existent) raised {e}")
 
     # ------------------------------------------------------------------
     # 4. 搜索/过滤
