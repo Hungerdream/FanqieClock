@@ -42,20 +42,7 @@ def pytest_sessionstart(session):
     except Exception:
         pass  # If import fails for any reason, let tests handle it themselves
 
-    # 2. Mock keyboard module to prevent background threads from blocking test teardown.
-    # The keyboard library creates listener threads that never exit, causing pytest to hang.
-    try:
-        import unittest.mock as mock
-        import sys
-
-        _keyboard_mock = mock.MagicMock()
-        _keyboard_mock.add_hotkey = mock.MagicMock()
-        _keyboard_mock.unhook_all = mock.MagicMock()
-        sys.modules['keyboard'] = _keyboard_mock
-    except Exception:
-        pass
-
-    # 3. Mock QMessageBox to prevent blocking dialogs in test environment.
+    # 2. Mock QMessageBox to prevent blocking dialogs in test environment.
     # In offscreen mode, modal dialogs can cause hangs.
     try:
         from unittest.mock import patch, MagicMock
@@ -67,7 +54,7 @@ def pytest_sessionstart(session):
     except Exception:
         pass
 
-    # 4. Mock DataManager save methods to prevent file lock conflicts between tests.
+    # 3. Mock DataManager save methods to prevent file lock conflicts between tests.
     # Multiple tests share data.json, causing WinError 32 on concurrent writes.
     try:
         from logic.data_manager import DataManager

@@ -36,6 +36,40 @@ if not exist FanqieClock.spec (
         --hidden-import "PyQt6" ^
         --hidden-import "PyQt6.QtSvg" ^
         --hidden-import "requests" ^
+        --exclude-module "PyQt6.QtWebEngine" ^
+        --exclude-module "PyQt6.QtWebEngineCore" ^
+        --exclude-module "PyQt6.QtWebEngineWidgets" ^
+        --exclude-module "PyQt6.QtNetwork" ^
+        --exclude-module "PyQt6.QtSql" ^
+        --exclude-module "PyQt6.QtMultimedia" ^
+        --exclude-module "PyQt6.QtMultimediaWidgets" ^
+        --exclude-module "PyQt6.QtBluetooth" ^
+        --exclude-module "PyQt6.QtNfc" ^
+        --exclude-module "PyQt6.QtPositioning" ^
+        --exclude-module "PyQt6.QtSensors" ^
+        --exclude-module "PyQt6.QtSerialPort" ^
+        --exclude-module "PyQt6.QtTest" ^
+        --exclude-module "PyQt6.QtDesigner" ^
+        --exclude-module "PyQt6.QtHelp" ^
+        --exclude-module "PyQt6.QtOpenGL" ^
+        --exclude-module "PyQt6.QtOpenGLWidgets" ^
+        --exclude-module "PyQt6.QtPdf" ^
+        --exclude-module "PyQt6.QtPdfWidgets" ^
+        --exclude-module "PyQt6.QtQuick" ^
+        --exclude-module "PyQt6.QtQuick3D" ^
+        --exclude-module "PyQt6.QtQuickWidgets" ^
+        --exclude-module "PyQt6.QtQml" ^
+        --exclude-module "PyQt6.QtSvgWidgets" ^
+        --exclude-module "PyQt6.QtDBus" ^
+        --exclude-module "tkinter" ^
+        --exclude-module "unittest" ^
+        --exclude-module "pytest" ^
+        --exclude-module "numpy" ^
+        --exclude-module "scipy" ^
+        --exclude-module "pandas" ^
+        --exclude-module "matplotlib" ^
+        --exclude-module "PIL" ^
+        --exclude-module "cv2" ^
         src/main.py
 ) else (
     python -m PyInstaller --noconfirm --log-level WARN FanqieClock.spec > build.log 2>&1

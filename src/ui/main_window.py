@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QPushButton, QStackedWidget, QLineEdit, 
                              QTextEdit, QFrame, QMessageBox, QApplication, QSizePolicy)
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPropertyAnimation, QEasingCurve, QEvent, QParallelAnimationGroup, QTimer
-from PyQt6.QtGui import QColor, QIcon, QCursor
+from PyQt6.QtGui import QColor, QIcon, QCursor, QShortcut, QKeySequence
 from logic.timer import PomodoroTimer
 from logic.data_manager import DataManager
 from logic.quote_worker import QuoteWorker
@@ -13,18 +13,9 @@ from utils import get_resource_path
 import sys
 import os
 
-# 全局快捷键（可选依赖）
-try:
-    import keyboard as _keyboard
-    _KEYBOARD_AVAILABLE = True
-except ImportError:
-    _KEYBOARD_AVAILABLE = False
-
 
 class MainWindow(QMainWindow):
     switch_to_compact = pyqtSignal()
-    # 全局快捷键触发信号（keyboard 钩子在子线程，需要信号切回主线程）
-    _global_shortcut_triggered = pyqtSignal(str)
 
     def __init__(self, timer: PomodoroTimer):
         super().__init__()
@@ -35,41 +26,25 @@ class MainWindow(QMainWindow):
         self._init_ui()
         self._load_saved_data()
         self._setup_connections()
-        self._setup_global_shortcuts()
+        self._setup_shortcuts()
         
         # Fetch Daily Quote
         self.quote_worker = QuoteWorker()
         self.quote_worker.quote_fetched.connect(self._update_daily_quote)
         self.quote_worker.start()
 
-    def _setup_global_shortcuts(self):
-        """注册全局快捷键（窗口最小化/隐藏时也有效）"""
-        self._global_shortcut_triggered.connect(self._handle_global_shortcut)
-        if not _KEYBOARD_AVAILABLE:
-            print("[Shortcut] keyboard lib not installed, global hotkey unavailable. Window-focus space key only.")
-            return
-        try:
-            # 空格键：开始/放弃计时
-            _keyboard.add_hotkey("space", lambda: self._global_shortcut_triggered.emit("space"),
-                                  suppress=False)
-            print("[Shortcut] Global hotkey registered: Space=start/pause")
-        except Exception as e:
-            print(f"[Shortcut] Failed to register global hotkey: {e}")
+    def _setup_shortcuts(self):
+        """注册快捷键（窗口有焦点时有效）"""
+        # 空格键：开始/放弃计时
+        space_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Space), self)
+        space_shortcut.activated.connect(self._on_space_pressed)
 
-    def _handle_global_shortcut(self, key: str):
-        """在主线程中处理全局快捷键事件"""
-        if key == "space":
-            # 如果焦点在文本输入框，忽略（避免打断正常输入）
-            focused = QApplication.focusWidget()
-            if isinstance(focused, (QLineEdit, QTextEdit)):
-                return
-            # 切换到计时页并触发 toggle
-            if self.content_stack.currentIndex() != 0:
-                self.switch_page(0)
-                # 如果窗口隐藏/最小化，先恢复
-                if self.isMinimized() or not self.isVisible():
-                    self.showNormal()
-                    self.activateWindow()
+    def _on_space_pressed(self):
+        """空格键按下时的处理"""
+        focused = QApplication.focusWidget()
+        if isinstance(focused, (QLineEdit, QTextEdit)):
+            return
+        if self.content_stack.currentIndex() == 0:
             self.toggle_timer()
 
     def _update_daily_quote(self, content, author):
@@ -96,12 +71,6 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'quote_worker') and self.quote_worker.isRunning():
                 self.quote_worker.quit()
                 self.quote_worker.wait(2000)  # Wait up to 2s
-            # 清理全局快捷键钩子
-            if _KEYBOARD_AVAILABLE:
-                try:
-                    _keyboard.unhook_all()
-                except Exception:
-                    pass
             # Wait for any pending save workers to finish before sync save
             self.data_manager.thread_pool.waitForDone(3000)
             # If triggered by app.quit(), save data and let it close
@@ -110,13 +79,6 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 print(f"Error saving data on close: {e}")
             event.accept()
-
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key.Key_Space:
-            if self.content_stack.currentIndex() == 0:  # Timer page
-                self.toggle_timer()
-        else:
-            super().keyPressEvent(event)
 
     def _init_ui(self):
         """初始化用户界面"""
