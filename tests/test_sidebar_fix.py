@@ -28,7 +28,7 @@ class TestSidebarFix(unittest.TestCase):
              patch.object(DataManager, 'save_data_sync', return_value=None):
             self.window = MainWindow(self.timer)
         self.window.show()
-        self.window.auto_hide_sidebar_toggle.setChecked(True)
+        self.window.settings_page.auto_hide_sidebar_toggle.setChecked(True)
         self.window.sidebar.setFixedWidth(85)
         QApplication.processEvents()
 
@@ -77,7 +77,7 @@ class TestSidebarFix(unittest.TestCase):
         self.window.eventFilter(self.window.sidebar, event)
 
         self.window.move(10000, 10000)
-        self.window.check_and_hide_sidebar()
+        self.window._check_and_hide_sidebar()
 
         self.assertEqual(self.window.anim_min.endValue(), 0)
 

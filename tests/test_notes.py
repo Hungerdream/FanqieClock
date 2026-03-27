@@ -43,7 +43,7 @@ class TestNotes(unittest.TestCase):
         self.window.show()
         # 确保初始笔记为空
         self.window.data_manager.data['notes'] = []
-        self.window.refresh_notes_table()
+        self.window.notes_page.refresh_table()
         QApplication.processEvents()
 
     def tearDown(self):
@@ -68,11 +68,11 @@ class TestNotes(unittest.TestCase):
         note = {'title': '标题A', 'content': '内容A', 'date': '2026-03-16'}
         with patch.object(DataManager, 'save_data', return_value=None):
             self.window.data_manager.update_notes([note])
-        self.window.refresh_notes_table()
+        self.window.notes_page.refresh_table()
         QApplication.processEvents()
 
-        self.assertEqual(self.window.notes_table.rowCount(), 1)
-        self.assertEqual(self.window.notes_table.item(0, 0).text(), '标题A')
+        self.assertEqual(self.window.notes_page.notes_table.rowCount(), 1)
+        self.assertEqual(self.window.notes_page.notes_table.item(0, 0).text(), '标题A')
 
     def test_add_multiple_notes(self):
         """添加多条笔记后表格行数应匹配"""
@@ -82,10 +82,10 @@ class TestNotes(unittest.TestCase):
         ]
         with patch.object(DataManager, 'save_data', return_value=None):
             self.window.data_manager.update_notes(notes)
-        self.window.refresh_notes_table()
+        self.window.notes_page.refresh_table()
         QApplication.processEvents()
 
-        self.assertEqual(self.window.notes_table.rowCount(), 3)
+        self.assertEqual(self.window.notes_page.notes_table.rowCount(), 3)
 
     # ------------------------------------------------------------------
     # 2. 编辑笔记
@@ -114,11 +114,11 @@ class TestNotes(unittest.TestCase):
         ]
         with patch.object(DataManager, 'save_data', return_value=None):
             self.window.data_manager.update_notes(notes)
-        self.window.refresh_notes_table()
+        self.window.notes_page.refresh_table()
         QApplication.processEvents()
 
         for row in range(2):
-            title_item = self.window.notes_table.item(row, 0)
+            title_item = self.window.notes_page.notes_table.item(row, 0)
             # 现在存储的是 UUID 而不是索引
             self.assertEqual(title_item.data(Qt.ItemDataRole.UserRole), notes[row]['id'])
 
@@ -137,7 +137,7 @@ class TestNotes(unittest.TestCase):
         with patch.object(DataManager, 'save_data', return_value=None), \
              patch.object(QMessageBox, 'question',
                           return_value=QMessageBox.StandardButton.Yes):
-            self.window.delete_note('delete-uuid')
+            self.window.notes_page.delete_note('delete-uuid')
 
         remaining = self.window.data_manager.data.get('notes', [])
         self.assertEqual(len(remaining), 1)
@@ -152,7 +152,7 @@ class TestNotes(unittest.TestCase):
         with patch.object(DataManager, 'save_data', return_value=None), \
              patch.object(QMessageBox, 'question',
                           return_value=QMessageBox.StandardButton.No):
-            self.window.delete_note('keep-uuid')
+            self.window.notes_page.delete_note('keep-uuid')
 
         remaining = self.window.data_manager.data.get('notes', [])
         self.assertEqual(len(remaining), 1)
@@ -165,7 +165,7 @@ class TestNotes(unittest.TestCase):
         with patch.object(QMessageBox, 'question',
                           return_value=QMessageBox.StandardButton.Yes):
             try:
-                self.window.delete_note('non-existent-uuid')
+                self.window.notes_page.delete_note('non-existent-uuid')
             except Exception as e:
                 self.fail(f"delete_note(non-existent) raised {e}")
 
@@ -181,11 +181,11 @@ class TestNotes(unittest.TestCase):
         ]
         with patch.object(DataManager, 'save_data', return_value=None):
             self.window.data_manager.update_notes(notes)
-        self.window.refresh_notes_table(filter_text='python')
+        self.window.notes_page.refresh_table(filter_text='python')
         QApplication.processEvents()
 
-        self.assertEqual(self.window.notes_table.rowCount(), 1)
-        self.assertEqual(self.window.notes_table.item(0, 0).text(), 'Python 学习')
+        self.assertEqual(self.window.notes_page.notes_table.rowCount(), 1)
+        self.assertEqual(self.window.notes_page.notes_table.item(0, 0).text(), 'Python 学习')
 
     def test_filter_notes_by_content(self):
         """按正文关键字过滤，命中正文的行也应显示"""
@@ -195,10 +195,10 @@ class TestNotes(unittest.TestCase):
         ]
         with patch.object(DataManager, 'save_data', return_value=None):
             self.window.data_manager.update_notes(notes)
-        self.window.refresh_notes_table(filter_text='番茄')
+        self.window.notes_page.refresh_table(filter_text='番茄')
         QApplication.processEvents()
 
-        self.assertEqual(self.window.notes_table.rowCount(), 1)
+        self.assertEqual(self.window.notes_page.notes_table.rowCount(), 1)
 
     def test_filter_notes_empty_keyword_shows_all(self):
         """过滤词为空时显示所有笔记"""
@@ -208,20 +208,20 @@ class TestNotes(unittest.TestCase):
         ]
         with patch.object(DataManager, 'save_data', return_value=None):
             self.window.data_manager.update_notes(notes)
-        self.window.refresh_notes_table(filter_text='')
+        self.window.notes_page.refresh_table(filter_text='')
         QApplication.processEvents()
 
-        self.assertEqual(self.window.notes_table.rowCount(), 4)
+        self.assertEqual(self.window.notes_page.notes_table.rowCount(), 4)
 
     def test_filter_notes_no_match(self):
         """过滤词无匹配时表格应为空"""
         notes = [{'title': '测试', 'content': '内容', 'date': '2026-03-16'}]
         with patch.object(DataManager, 'save_data', return_value=None):
             self.window.data_manager.update_notes(notes)
-        self.window.refresh_notes_table(filter_text='zzz_no_match')
+        self.window.notes_page.refresh_table(filter_text='zzz_no_match')
         QApplication.processEvents()
 
-        self.assertEqual(self.window.notes_table.rowCount(), 0)
+        self.assertEqual(self.window.notes_page.notes_table.rowCount(), 0)
 
 
 if __name__ == '__main__':

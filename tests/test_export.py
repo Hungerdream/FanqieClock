@@ -71,7 +71,7 @@ class TestExportStats(unittest.TestCase):
             with patch('PyQt6.QtWidgets.QFileDialog.getSaveFileName',
                        return_value=(tmp_path, 'PDF Files (*.pdf)')), \
                  patch.object(QMessageBox, 'information', return_value=None):
-                self.window.export_stats_pdf()
+                self.window.stats_page.export_pdf()
             QApplication.processEvents()
 
             self.assertTrue(os.path.exists(tmp_path),
@@ -87,7 +87,7 @@ class TestExportStats(unittest.TestCase):
         with patch('PyQt6.QtWidgets.QFileDialog.getSaveFileName',
                    return_value=('', '')):
             try:
-                self.window.export_stats_pdf()
+                self.window.stats_page.export_pdf()
             except Exception as e:
                 self.fail(f"export_stats_pdf raised exception on cancel: {e}")
 
@@ -100,7 +100,7 @@ class TestExportStats(unittest.TestCase):
             with patch('PyQt6.QtWidgets.QFileDialog.getSaveFileName',
                        return_value=(tmp_path, 'PDF Files (*.pdf)')), \
                  patch.object(QMessageBox, 'information') as mock_info:
-                self.window.export_stats_pdf()
+                self.window.stats_page.export_pdf()
             QApplication.processEvents()
 
             mock_info.assert_called_once()
@@ -133,7 +133,7 @@ class TestExportStats(unittest.TestCase):
                        return_value=(tmp_path, 'PDF Files (*.pdf)')), \
                  patch.object(QMessageBox, 'information', return_value=None), \
                  patch.object(QTextDocument, 'setHtml', capture_set_html):
-                self.window.export_stats_pdf()
+                self.window.stats_page.export_pdf()
             QApplication.processEvents()
 
             self.assertTrue(html_captured, "setHtml was never called")
@@ -177,10 +177,10 @@ class TestRefreshStats(unittest.TestCase):
             'history': {}
         }
         self.window.data_manager.data['interruptions'] = []
-        self.window.refresh_stats()
+        self.window.stats_page.refresh()
         QApplication.processEvents()
 
-        self.assertEqual(self.window.stat_pomos.val_label.text(), '99')
+        self.assertEqual(self.window.stats_page.stat_pomos.val_label.text(), '99')
 
     def test_refresh_stats_minutes_display_under_60(self):
         """不足 60 分钟时应显示 'X 分钟' 格式"""
@@ -191,10 +191,10 @@ class TestRefreshStats(unittest.TestCase):
             'history': {}
         }
         self.window.data_manager.data['interruptions'] = []
-        self.window.refresh_stats()
+        self.window.stats_page.refresh()
         QApplication.processEvents()
 
-        self.assertIn('分钟', self.window.stat_time.val_label.text())
+        self.assertIn('分钟', self.window.stats_page.stat_time.val_label.text())
 
     def test_refresh_stats_minutes_display_over_60(self):
         """超过 60 分钟时应显示 'X.X 小时' 格式"""
@@ -205,10 +205,10 @@ class TestRefreshStats(unittest.TestCase):
             'history': {}
         }
         self.window.data_manager.data['interruptions'] = []
-        self.window.refresh_stats()
+        self.window.stats_page.refresh()
         QApplication.processEvents()
 
-        self.assertIn('小时', self.window.stat_time.val_label.text())
+        self.assertIn('小时', self.window.stats_page.stat_time.val_label.text())
 
     def test_refresh_stats_history_list_shows_last_7_days(self):
         """历史记录列表最多显示最近 7 天"""
@@ -221,10 +221,10 @@ class TestRefreshStats(unittest.TestCase):
             'history': history
         }
         self.window.data_manager.data['interruptions'] = []
-        self.window.refresh_stats()
+        self.window.stats_page.refresh()
         QApplication.processEvents()
 
-        self.assertEqual(self.window.history_list.count(), 7)
+        self.assertEqual(self.window.stats_page.history_list.count(), 7)
 
     def test_refresh_stats_interruption_count(self):
         """打断次数应正确统计"""
@@ -237,10 +237,10 @@ class TestRefreshStats(unittest.TestCase):
             {'type': 'external', 'timestamp': '2026-03-16T11:00:00'},
             {'type': 'internal', 'timestamp': '2026-03-16T12:00:00'},
         ]
-        self.window.refresh_stats()
+        self.window.stats_page.refresh()
         QApplication.processEvents()
 
-        self.assertEqual(self.window.stat_interrupts.val_label.text(), '3')
+        self.assertEqual(self.window.stats_page.stat_interrupts.val_label.text(), '3')
 
 
 if __name__ == '__main__':
