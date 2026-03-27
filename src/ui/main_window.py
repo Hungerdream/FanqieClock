@@ -16,6 +16,7 @@ from logic.data_manager import DataManager
 from logic.quote_worker import QuoteWorker
 from ui.widgets import CircularProgressBar, KanbanItemWidget, KanbanList, LongBreakOverlay, SmoothButton, NumberControl
 from ui.chart_widgets import BarChartWidget, HeatmapWidget
+from utils import get_resource_path
 
 # 全局快捷键（可选依赖）
 try:
@@ -23,21 +24,6 @@ try:
     _KEYBOARD_AVAILABLE = True
 except ImportError:
     _KEYBOARD_AVAILABLE = False
-
-def get_resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    if hasattr(sys, 'frozen'):
-        # PyInstaller
-        if hasattr(sys, '_MEIPASS'):
-            # OneFile mode
-            base_path = sys._MEIPASS
-        else:
-            # OneDir mode
-            base_path = os.path.dirname(sys.executable)
-    else:
-        # Dev mode: src/ui/main_window.py -> src
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
 
 class MainWindow(QMainWindow):
     switch_to_compact = pyqtSignal()
@@ -49,6 +35,7 @@ class MainWindow(QMainWindow):
         self.timer = timer
         self.data_manager = DataManager()
         self.current_task = None
+        self.task_location = {}  # {task_id: (col_key, row_index)} for O(1) lookup
         self.init_ui()
         self.load_saved_data()
         self.setup_connections()
@@ -119,6 +106,8 @@ class MainWindow(QMainWindow):
                     _keyboard.unhook_all()
                 except Exception:
                     pass
+            # Wait for any pending save workers to finish before sync save
+            self.data_manager.thread_pool.waitForDone(3000)
             # If triggered by app.quit(), save data and let it close
             try:
                 self.data_manager.save_data_sync()
@@ -938,6 +927,14 @@ class MainWindow(QMainWindow):
         r_autohide.addWidget(self.auto_hide_sidebar_toggle)
         p1.addLayout(r_autohide)
 
+        # 自动开始下一阶段
+        r_autostart = make_row_item("自动开始下一阶段", "阶段结束后自动开始休息/工作")
+        self.auto_start_toggle = QCheckBox()
+        self.auto_start_toggle.setStyleSheet(checkbox_style)
+        self.auto_start_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        r_autostart.addWidget(self.auto_start_toggle)
+        p1.addLayout(r_autostart)
+
         p1.addStretch()
 
         self._settings_stack.addWidget(p1_scroll)
@@ -1112,6 +1109,7 @@ class MainWindow(QMainWindow):
         self.long_break_interval_spin.valueChanged.connect(self._auto_save_settings)
         self.sound_toggle.toggled.connect(self._auto_save_settings)
         self.auto_hide_sidebar_toggle.toggled.connect(self._auto_save_settings)
+        self.auto_start_toggle.toggled.connect(self._auto_save_settings)
         # tick toggles 在 create_settings_page 里已连接 set_tick_enabled，
         # 这里额外连持久化
         self.tick_work_toggle.toggled.connect(self._auto_save_settings)
@@ -1123,12 +1121,17 @@ class MainWindow(QMainWindow):
     def load_saved_data(self):
         data = self.data_manager.data
         tasks = data.get("tasks", {})
+        # Rebuild task location lookup table
+        self.task_location.clear()
         for key, items in tasks.items():
             if key in self.kanban_cols:
                 self.kanban_cols[key].clear()
-                for item_data in items:
+                for idx, item_data in enumerate(items):
                     # item_data is a dict now
                     self.kanban_cols[key].add_task_item(item_data)
+                    # Register in lookup table
+                    if item_data.get('id'):
+                        self.task_location[item_data['id']] = (key, idx)
         
         self.refresh_notes_table()
         self.refresh_stats()
@@ -1140,6 +1143,7 @@ class MainWindow(QMainWindow):
         self.long_break_interval_spin.setValue(settings.get("long_break_interval", 4))
         self.sound_toggle.setChecked(settings.get("sound_enabled", True))
         self.auto_hide_sidebar_toggle.setChecked(settings.get("auto_hide_sidebar", True))
+        self.auto_start_toggle.setChecked(settings.get("auto_start", True))
 
         # 加载滴答声开关（默认开启）
         self.tick_work_toggle.setChecked(settings.get("tick_enabled_work", True))
@@ -1157,6 +1161,8 @@ class MainWindow(QMainWindow):
             work_tick=settings.get("tick_enabled_work", True),
             break_tick=settings.get("tick_enabled_break", True)
         )
+        # 设置阶段结束后自动开始
+        self.timer.auto_start = settings.get("auto_start", True)
         
         # Apply saved theme preference
         theme = settings.get("theme", "light")
@@ -1382,27 +1388,27 @@ class MainWindow(QMainWindow):
             self.refresh_stats()
 
     def update_task_pomo_count(self, task_id):
-        found = False
-        for key, col in self.kanban_cols.items():
-            for i in range(col.count()):
-                item = col.item(i)
-                data = item.data(Qt.ItemDataRole.UserRole)
-                if data and data.get('id') == task_id:
-                    data['pomodoros'] = data.get('pomodoros', 0) + 1
-                    item.setData(Qt.ItemDataRole.UserRole, data)
-                    # Refresh widget display
-                    widget = col.itemWidget(item)
-                    if widget:
-                        widget.pomo_label.setText(f"🍅 {data['pomodoros']}")
-                        # widget.task_data is a reference, but we updated 'data' dict.
-                        # Since widget.task_data = task_data in constructor, they might be same object if we passed it.
-                        # But QListWidgetItem copies data? No, python objects are refs.
-                        # However, let's be safe and update widget.task_data
-                        widget.task_data = data 
-                    found = True
-                    break
-            if found: break
-        if found:
+        # O(1) lookup using task_location table
+        location = self.task_location.get(task_id)
+        if not location:
+            return
+        key, row_index = location
+        col = self.kanban_cols.get(key)
+        if not col:
+            return
+        
+        item = col.item(row_index)
+        if not item:
+            return
+        data = item.data(Qt.ItemDataRole.UserRole)
+        if data:
+            data['pomodoros'] = data.get('pomodoros', 0) + 1
+            item.setData(Qt.ItemDataRole.UserRole, data)
+            # Refresh widget display
+            widget = col.itemWidget(item)
+            if widget:
+                widget.pomo_label.setText(f"🍅 {data['pomodoros']}")
+                widget.task_data = data
             self.save_kanban_state()
 
     def add_kanban_task(self, key, input_field):
@@ -1414,19 +1420,20 @@ class MainWindow(QMainWindow):
                 "pomodoros": 0,
                 "created_at": QDate.currentDate().toString(Qt.DateFormat.ISODate)
             }
-            # Ensure DataManager processes it to add UUID if needed, but here we construct it.
-            # Actually DataManager._ensure_task_obj handles strings, but we can pass dict.
-            # Let's let DataManager generate ID if missing.
-            # For now, generate ID here or rely on list reload. 
-            # Better to be explicit.
             task_data["id"] = str(uuid.uuid4())
             
             self.kanban_cols[key].add_task_item(task_data)
+            # Update lookup table: new task goes to the end
+            row_index = self.kanban_cols[key].count() - 1
+            self.task_location[task_data["id"]] = (key, row_index)
+            
             input_field.clear()
             self.save_kanban_state()
 
     def save_kanban_state(self):
         tasks_dict = {}
+        # Rebuild task location lookup table
+        self.task_location.clear()
         for key, col in self.kanban_cols.items():
             tasks = []
             for i in range(col.count()):
@@ -1434,6 +1441,9 @@ class MainWindow(QMainWindow):
                 task_data = item.data(Qt.ItemDataRole.UserRole)
                 if task_data:
                     tasks.append(task_data)
+                    # Update lookup table
+                    if task_data.get('id'):
+                        self.task_location[task_data['id']] = (key, i)
             tasks_dict[key] = tasks
         self.data_manager.update_tasks(tasks_dict)
 
@@ -1442,7 +1452,11 @@ class MainWindow(QMainWindow):
         notes = self.data_manager.data.get("notes", [])
         self.notes_table.setRowCount(0)
         
-        for i, note in enumerate(notes):
+        for note in notes:
+            # Ensure note has an id
+            if 'id' not in note:
+                note['id'] = str(uuid.uuid4())
+            
             # Filtering logic
             if filter_text and filter_text.lower() not in note['title'].lower() and filter_text.lower() not in note['content'].lower():
                 continue
@@ -1450,9 +1464,9 @@ class MainWindow(QMainWindow):
             self.notes_table.insertRow(self.notes_table.rowCount())
             row = self.notes_table.rowCount() - 1
             
-            # Title item
+            # Title item - store note id instead of index
             title_item = QTableWidgetItem(note['title'])
-            title_item.setData(Qt.ItemDataRole.UserRole, i) # Store original index
+            title_item.setData(Qt.ItemDataRole.UserRole, note['id'])
             self.notes_table.setItem(row, 0, title_item)
             
             # Summary item
@@ -1472,31 +1486,27 @@ class MainWindow(QMainWindow):
             
             delete_action = QAction("删除笔记", self)
             delete_action.setIcon(QIcon(get_resource_path("resources/icon_delete_new.svg")))
-            # Use closure to capture row index, but delete_note expects logic index
-            # The row index in table might differ from data list if filtered?
-            # Yes, filter logic just skips insertion, so table rows match displayed items.
-            # But `delete_note` uses `self.data_manager.data.get("notes", []).pop(idx)`
-            # This implies `idx` is index in the SOURCE list.
-            
-            # Wait, refresh_notes_table:
-            # title_item.setData(Qt.ItemDataRole.UserRole, i) # Store original index
-            
-            # So we must retrieve the original index from the item!
+            # Retrieve note id from the item (stored via UserRole)
             title_item = self.notes_table.item(row, 0)
-            original_index = title_item.data(Qt.ItemDataRole.UserRole)
+            note_id = title_item.data(Qt.ItemDataRole.UserRole)
             
-            delete_action.triggered.connect(lambda: self.delete_note(original_index))
+            delete_action.triggered.connect(lambda: self.delete_note(note_id))
             
             menu.addAction(delete_action)
             menu.exec(self.notes_table.mapToGlobal(pos))
 
-    def show_note_dialog(self, original_index=None):
+    def show_note_dialog(self, note_id=None):
         # Handle signal sending boolean (False) when clicked
-        if isinstance(original_index, bool):
-            original_index = None
+        if isinstance(note_id, bool):
+            note_id = None
             
         notes = self.data_manager.data.get("notes", [])
-        note_data = notes[original_index] if original_index is not None else None
+        note_data = None
+        if note_id is not None:
+            for note in notes:
+                if note.get('id') == note_id:
+                    note_data = note
+                    break
         
         dialog = QDialog(self)
         dialog.setWindowTitle("笔记编辑" if note_data else "新建笔记")
@@ -1528,12 +1538,17 @@ class MainWindow(QMainWindow):
         
         def save():
             new_note = {
+                "id": note_id if note_id else str(uuid.uuid4()),
                 "title": title_edit.text() or "未命名笔记",
                 "content": content_edit.toPlainText(),
                 "date": QDate.currentDate().toString(Qt.DateFormat.ISODate)
             }
-            if original_index is not None:
-                notes[original_index] = new_note
+            if note_id:
+                # Update existing note by id
+                for i, note in enumerate(notes):
+                    if note.get('id') == note_id:
+                        notes[i] = new_note
+                        break
             else:
                 notes.insert(0, new_note)
             
@@ -1552,13 +1567,13 @@ class MainWindow(QMainWindow):
         dialog.exec()
 
     def edit_note(self, item):
-        # Get the title item of the row to retrieve the original index
+        # Get the title item of the row to retrieve the note id
         row = item.row()
         title_item = self.notes_table.item(row, 0)
-        original_index = title_item.data(Qt.ItemDataRole.UserRole)
-        self.show_note_dialog(original_index)
+        note_id = title_item.data(Qt.ItemDataRole.UserRole)
+        self.show_note_dialog(note_id)
 
-    def delete_note(self, idx):
+    def delete_note(self, note_id):
         # Confirmation Dialog
         reply = QMessageBox.question(self, '确认删除', 
                                      '您确定要删除这条笔记吗？此操作无法撤销。',
@@ -1567,10 +1582,9 @@ class MainWindow(QMainWindow):
                                      
         if reply == QMessageBox.StandardButton.Yes:
             notes = self.data_manager.data.get("notes", [])
-            if 0 <= idx < len(notes):
-                notes.pop(idx)
-                self.data_manager.update_notes(notes)
-                self.refresh_notes_table()
+            notes[:] = [n for n in notes if n.get('id') != note_id]
+            self.data_manager.update_notes(notes)
+            self.refresh_notes_table()
 
     def filter_notes(self):
         self.refresh_notes_table(self.note_search.text())
@@ -1727,8 +1741,11 @@ class MainWindow(QMainWindow):
         sound_break = current_settings.get("sound_break")
         sound_long_break = current_settings.get("sound_long_break")
 
-        # Preserve current theme setting
+        # Preserve current theme, read auto_start from UI
         current_theme = current_settings.get("theme", "light")
+        auto_start = self.auto_start_toggle.isChecked()
+        # Apply to timer immediately
+        self.timer.auto_start = auto_start
         settings = {
             "work_mins": w,
             "break_mins": b,
@@ -1741,6 +1758,7 @@ class MainWindow(QMainWindow):
             "tick_enabled_work": self.tick_work_toggle.isChecked(),
             "tick_enabled_break": self.tick_break_toggle.isChecked(),
             "auto_hide_sidebar": auto_hide,
+            "auto_start": auto_start,
             "theme": current_theme
         }
         self.data_manager.update_settings(settings)

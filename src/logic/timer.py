@@ -5,12 +5,25 @@ import threading
 # ── Audio Backend ──────────────────────────────────────────────────────────────
 try:
     import pygame
-    pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
     _PYGAME_AVAILABLE = True
-    print(f"[Audio] pygame mixer OK: {pygame.mixer.get_init()}")
 except Exception as _e:
     _PYGAME_AVAILABLE = False
-    print(f"[Audio] pygame mixer FAILED: {_e}")
+    print(f"[Audio] pygame import FAILED: {_e}")
+
+_pygame_initialized = False
+
+def _ensure_pygame_init():
+    """Lazy initialize pygame mixer on first use."""
+    global _pygame_initialized, _PYGAME_AVAILABLE
+    if _pygame_initialized or not _PYGAME_AVAILABLE:
+        return
+    try:
+        pygame.mixer.init(frequency=44100, size=-16, channels=2, buffer=512)
+        _pygame_initialized = True
+        print(f"[Audio] pygame mixer initialized: {pygame.mixer.get_init()}")
+    except Exception as e:
+        _PYGAME_AVAILABLE = False
+        print(f"[Audio] pygame mixer init failed: {e}")
 
 try:
     import winsound
@@ -33,6 +46,9 @@ def _get_builtin_tick():
     if _BUILTIN_TICK_SOUND is not None:
         return _BUILTIN_TICK_SOUND
     if not _PYGAME_AVAILABLE:
+        return None
+    _ensure_pygame_init()  # Lazy init on first use
+    if not _pygame_initialized:
         return None
     # 1. 尝试加载 tick.wav
     wav_path = _builtin_tick_wav_path()
@@ -75,6 +91,9 @@ def _get_builtin_tick():
 def _play_file(path):
     """在独立线程播放音频文件（非阻塞）"""
     if not _PYGAME_AVAILABLE or not path or not os.path.exists(path):
+        return
+    _ensure_pygame_init()  # Lazy init on first use
+    if not _pygame_initialized:
         return
     def _do_play():
         try:
@@ -160,6 +179,7 @@ class PomodoroTimer(QObject):
 
         self.pomodoros_completed = 0
         self.pomodoros_until_long_break = 4
+        self.auto_start = True  # 阶段结束后自动开始下一阶段
 
         self.timer = QTimer()
         self.timer.timeout.connect(self._handle_tick)
@@ -248,7 +268,8 @@ class PomodoroTimer(QObject):
         self._play_sound()       # 阶段结束音
         self.finished.emit()
         self.switch_mode()
-        self.start()             # 自动开始下一阶段
+        if self.auto_start:
+            self.start()        # 自动开始下一阶段
 
     def switch_mode(self):
         if self.current_mode == 'work':

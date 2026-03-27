@@ -10,18 +10,21 @@ class FloatingWindow(QWidget):
     def __init__(self, timer: PomodoroTimer):
         super().__init__()
         self.timer = timer
-        self.init_ui()
-        self.setup_connections()
-        self.old_pos = None
-        
-        # Entrance animation
+        # Entrance animation - initialized but not started
         self.setWindowOpacity(0)
         self.fade_anim = QPropertyAnimation(self, b"windowOpacity")
         self.fade_anim.setDuration(300)
         self.fade_anim.setStartValue(0)
         self.fade_anim.setEndValue(1)
         self.fade_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+    def show(self):
+        """Override show to start fade animation after window is displayed."""
+        super().show()
         self.fade_anim.start()
+        self.init_ui()
+        self.setup_connections()
+        self.old_pos = None
 
     def init_ui(self):
         self.setObjectName("FloatingWindow")
@@ -133,9 +136,7 @@ class FloatingWindow(QWidget):
     def update_mode_display(self, mode):
         is_work = mode == 'work'
         self.mode_text.setText("专注中" if is_work else "休息中")
-        # Update dot color: red for work, green for break/long_break
-        dot_color = "#E53935" if is_work else "#43A047"
-        self.mode_dot.setStyleSheet(f"color: {dot_color}; font-size: 14px;")
+        self.mode_dot.setStyleSheet(f"color: #000000; font-size: 14px;")
         
         # Update play/pause button icon based on timer state
         self.update_play_pause_button()
@@ -154,17 +155,13 @@ class FloatingWindow(QWidget):
         else:
             self.timer.start()
         
-        # Simple scale animation for feedback — keep persistent reference to avoid GC
-        if not hasattr(self, '_anim_list'):
-            self._anim_list = []
-        anim = QPropertyAnimation(self.play_btn, b"iconSize")
-        anim.setDuration(150)
-        anim.setStartValue(QSize(20, 20))
-        anim.setEndValue(QSize(24, 24))
-        anim.setEasingCurve(QEasingCurve.Type.OutBack)
-        anim.finished.connect(lambda: self._anim_list.remove(anim) if anim in self._anim_list else None)
-        self._anim_list.append(anim)
-        anim.start()
+        # Simple scale animation for feedback
+        self.anim = QPropertyAnimation(self.play_btn, b"iconSize")
+        self.anim.setDuration(150)
+        self.anim.setStartValue(QSize(20, 20))
+        self.anim.setEndValue(QSize(24, 24))
+        self.anim.setEasingCurve(QEasingCurve.Type.OutBack)
+        self.anim.start()
 
     # Mouse events for dragging with smooth movement
     def mousePressEvent(self, event):
