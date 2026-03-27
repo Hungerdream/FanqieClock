@@ -162,6 +162,7 @@ class DataManager(QObject):
                 "white_noise_enabled": False,
                 "auto_hide_sidebar": True,
                 "sidebar_manual_state": None, # None=Auto, 'collapsed', 'expanded'
+                "auto_start": True,          # 阶段结束后自动开始下一阶段
                 "theme": "light"
             }
         }

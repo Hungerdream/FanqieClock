@@ -7,22 +7,7 @@ from PyQt6.QtGui import QIcon
 from logic.timer import PomodoroTimer
 from ui.main_window import MainWindow
 from ui.floating_window import FloatingWindow
-
-def get_resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-    if hasattr(sys, 'frozen'):
-        # PyInstaller
-        if hasattr(sys, '_MEIPASS'):
-            # OneFile mode
-            base_path = sys._MEIPASS
-        else:
-            # OneDir mode
-            base_path = os.path.dirname(sys.executable)
-    else:
-        # Dev mode: src/main.py -> src
-        base_path = os.path.dirname(os.path.abspath(__file__))
-    
-    return os.path.join(base_path, relative_path)
+from utils import get_resource_path
 
 class PomodoroApp:
     def __init__(self):

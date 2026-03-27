@@ -3,17 +3,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushBut
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QRectF, pyqtProperty, QPointF
 from PyQt6.QtGui import QColor, QFont, QIcon, QPainter, QPen, QPainterPath
 import sys, os
-
-def get_resource_path(relative_path):
-    if hasattr(sys, 'frozen'):
-        if hasattr(sys, '_MEIPASS'):
-            base_path = sys._MEIPASS
-        else:
-            base_path = os.path.dirname(sys.executable)
-    else:
-        # src/ui/widgets.py -> src
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
+from utils import get_resource_path
 
 class SmoothButton(QPushButton):
     """
