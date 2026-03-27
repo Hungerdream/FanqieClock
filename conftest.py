@@ -29,8 +29,8 @@ def pytest_configure(config):
 
 
 def pytest_sessionstart(session):
-    """Mock QuoteWorker to avoid real network requests in CI / test environment."""
-    # Patch QuoteWorker.run so it emits a default quote instantly without HTTP call.
+    """Mock network-dependent modules to avoid hangs in CI environment."""
+    # 1. Patch QuoteWorker.run so it emits a default quote instantly without HTTP call.
     # This prevents threads from hanging on network timeouts and blocking test teardown.
     try:
         from logic.quote_worker import QuoteWorker
@@ -41,5 +41,46 @@ def pytest_sessionstart(session):
         QuoteWorker.run = _noop_run
     except Exception:
         pass  # If import fails for any reason, let tests handle it themselves
+
+    # 2. Mock keyboard module to prevent background threads from blocking test teardown.
+    # The keyboard library creates listener threads that never exit, causing pytest to hang.
+    try:
+        import unittest.mock as mock
+        import sys
+
+        _keyboard_mock = mock.MagicMock()
+        _keyboard_mock.add_hotkey = mock.MagicMock()
+        _keyboard_mock.unhook_all = mock.MagicMock()
+        sys.modules['keyboard'] = _keyboard_mock
+    except Exception:
+        pass
+
+    # 3. Mock QMessageBox to prevent blocking dialogs in test environment.
+    # In offscreen mode, modal dialogs can cause hangs.
+    try:
+        from unittest.mock import patch, MagicMock
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.warning = MagicMock()
+        QMessageBox.critical = MagicMock()
+        QMessageBox.information = MagicMock()
+        QMessageBox.question = MagicMock(return_value=QMessageBox.StandardButton.Yes)
+    except Exception:
+        pass
+
+    # 4. Mock DataManager save methods to prevent file lock conflicts between tests.
+    # Multiple tests share data.json, causing WinError 32 on concurrent writes.
+    try:
+        from logic.data_manager import DataManager
+
+        def _noop_save(self):
+            pass
+
+        def _noop_save_sync(self):
+            pass
+
+        DataManager.save_data = _noop_save
+        DataManager.save_data_sync = _noop_save_sync
+    except Exception:
+        pass
 
 
