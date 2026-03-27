@@ -56,10 +56,10 @@ class TestTaskPomoCount(unittest.TestCase):
             'pomodoros': pomodoros,
             'created_at': '2026-03-16',
         }
-        self.window.kanban_cols[key].add_task_item(task_data)
+        self.window.kanban_page.kanban_cols[key].add_task_item(task_data)
         # Also update task_location for O(1) lookup used by update_task_pomo_count
-        row_index = self.window.kanban_cols[key].count() - 1
-        self.window.task_location[task_id] = (key, row_index)
+        row_index = self.window.kanban_page.kanban_cols[key].count() - 1
+        self.window.kanban_page.task_location[task_id] = (key, row_index)
         QApplication.processEvents()
         return task_id
 
@@ -71,10 +71,10 @@ class TestTaskPomoCount(unittest.TestCase):
         task_id = self._add_task(key='q1', content='任务A', pomodoros=0)
 
         with patch.object(DataManager, 'save_data', return_value=None):
-            self.window.update_task_pomo_count(task_id)
+            self.window.kanban_page.update_task_pomo_count(task_id)
 
         # 从 kanban_cols 取回数据验证
-        col = self.window.kanban_cols['q1']
+        col = self.window.kanban_page.kanban_cols['q1']
         item = col.item(col.count() - 1)
         data = item.data(Qt.ItemDataRole.UserRole)
         self.assertEqual(data['pomodoros'], 1,
@@ -85,10 +85,10 @@ class TestTaskPomoCount(unittest.TestCase):
         task_id = self._add_task(key='q2', content='任务B', pomodoros=2)
 
         with patch.object(DataManager, 'save_data', return_value=None):
-            self.window.update_task_pomo_count(task_id)
-            self.window.update_task_pomo_count(task_id)
+            self.window.kanban_page.update_task_pomo_count(task_id)
+            self.window.kanban_page.update_task_pomo_count(task_id)
 
-        col = self.window.kanban_cols['q2']
+        col = self.window.kanban_page.kanban_cols['q2']
         item = col.item(col.count() - 1)
         data = item.data(Qt.ItemDataRole.UserRole)
         self.assertEqual(data['pomodoros'], 4)
@@ -97,17 +97,17 @@ class TestTaskPomoCount(unittest.TestCase):
         """对不存在的 task_id 调用应静默忽略，不抛异常"""
         try:
             with patch.object(DataManager, 'save_data', return_value=None):
-                self.window.update_task_pomo_count('nonexistent-id-xxx')
+                self.window.kanban_page.update_task_pomo_count('nonexistent-id-xxx')
         except Exception as e:
             self.fail(f"update_task_pomo_count raised unexpected exception: {e}")
 
     def test_pomo_count_triggers_save(self):
-        """update_task_pomo_count 找到任务后应调用 save_kanban_state"""
+        """update_task_pomo_count 找到任务后应调用 save_state"""
         task_id = self._add_task(key='q1', content='任务C')
 
-        with patch.object(self.window, 'save_kanban_state') as mock_save, \
+        with patch.object(self.window.kanban_page, 'save_state') as mock_save, \
              patch.object(DataManager, 'save_data', return_value=None):
-            self.window.update_task_pomo_count(task_id)
+            self.window.kanban_page.update_task_pomo_count(task_id)
 
         mock_save.assert_called_once()
 
@@ -116,10 +116,10 @@ class TestTaskPomoCount(unittest.TestCase):
         task_id = self._add_task(key='q3', content='任务D', pomodoros=0)
 
         with patch.object(DataManager, 'save_data', return_value=None):
-            self.window.update_task_pomo_count(task_id)
+            self.window.kanban_page.update_task_pomo_count(task_id)
         QApplication.processEvents()
 
-        col = self.window.kanban_cols['q3']
+        col = self.window.kanban_page.kanban_cols['q3']
         item = col.item(col.count() - 1)
         widget = col.itemWidget(item)
         if widget is not None:
@@ -131,9 +131,9 @@ class TestTaskPomoCount(unittest.TestCase):
         for key in ('q1', 'q2', 'q3', 'q4'):
             task_id = self._add_task(key=key, content=f'任务_{key}')
             with patch.object(DataManager, 'save_data', return_value=None):
-                self.window.update_task_pomo_count(task_id)
+                self.window.kanban_page.update_task_pomo_count(task_id)
 
-            col = self.window.kanban_cols[key]
+            col = self.window.kanban_page.kanban_cols[key]
             item = col.item(col.count() - 1)
             data = item.data(Qt.ItemDataRole.UserRole)
             self.assertEqual(data['pomodoros'], 1,
@@ -149,10 +149,10 @@ class TestTaskPomoCount(unittest.TestCase):
 
         with patch.object(DataManager, 'save_data', return_value=None), \
              patch.object(DataManager, 'save_data_sync', return_value=None):
-            self.window.handle_timer_finished()
+            self.window._handle_timer_finished()
         QApplication.processEvents()
 
-        col = self.window.kanban_cols['q1']
+        col = self.window.kanban_page.kanban_cols['q1']
         item = col.item(col.count() - 1)
         data = item.data(Qt.ItemDataRole.UserRole)
         self.assertEqual(data['pomodoros'], 1,
@@ -164,7 +164,7 @@ class TestTaskPomoCount(unittest.TestCase):
         try:
             with patch.object(DataManager, 'save_data', return_value=None), \
                  patch.object(DataManager, 'save_data_sync', return_value=None):
-                self.window.handle_timer_finished()
+                self.window._handle_timer_finished()
         except Exception as e:
             self.fail(f"handle_timer_finished raised: {e}")
 

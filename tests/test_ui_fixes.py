@@ -95,7 +95,7 @@ class TestUIBugs(unittest.TestCase):
         Test 3: Settings Numerals
         Verify spinbox locale produces standard Arabic digits.
         """
-        spinbox = self.window.work_mins_spin
+        spinbox = self.window.settings_page.work_mins_spin
         locale = spinbox.locale()
         locale_name = locale.name()
 

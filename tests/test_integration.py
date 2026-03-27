@@ -88,11 +88,11 @@ class TestIntegration(unittest.TestCase):
 
         # Simulate work mode finished
         timer.current_mode = 'work'
-        window.work_mins_spin.setValue(25)
+        window.settings_page.work_mins_spin.setValue(25)
 
         with patch.object(DataManager, 'save_data', return_value=None), \
              patch.object(DataManager, 'save_data_sync', return_value=None):
-            window.handle_timer_finished()
+            window._handle_timer_finished()
 
         stats = window.data_manager.data["stats"]
         self.assertEqual(stats["total_pomodoros"], 1)
@@ -103,15 +103,15 @@ class TestIntegration(unittest.TestCase):
         window, timer = self._make_window()
 
         # Clear q1 to ensure isolation from any pre-loaded disk data
-        window.kanban_cols["q1"].clear()
+        window.kanban_page.kanban_cols["q1"].clear()
 
         with patch.object(DataManager, 'save_data', return_value=None):
             from PyQt6.QtWidgets import QLineEdit
             input_field = QLineEdit()
             input_field.setText("Focus Task")
-            window.add_kanban_task("q1", input_field)
+            window.kanban_page.add_task("q1", input_field)
 
-        q1_list = window.kanban_cols["q1"]
+        q1_list = window.kanban_page.kanban_cols["q1"]
         self.assertEqual(q1_list.count(), 1)
         item = q1_list.item(0)
         task_data = item.data(Qt.ItemDataRole.UserRole)
@@ -132,12 +132,12 @@ class TestIntegration(unittest.TestCase):
         """Saving settings propagates new durations to the timer."""
         window, timer = self._make_window()
 
-        window.work_mins_spin.setValue(50)
-        window.break_mins_spin.setValue(10)
+        window.settings_page.work_mins_spin.setValue(50)
+        window.settings_page.break_mins_spin.setValue(10)
 
         with patch.object(DataManager, 'save_data', return_value=None), \
              patch.object(DataManager, 'save_data_sync', return_value=None):
-            window._auto_save_settings()
+            window.settings_page._on_settings_changed()
 
         self.assertEqual(timer.work_seconds, 50 * 60)
         self.assertEqual(timer.break_seconds, 10 * 60)

@@ -200,7 +200,7 @@ class TestThemeToggle(unittest.TestCase):
     def test_toggle_to_dark_saves_setting(self):
         """切换到暗色主题后，settings 中 theme 应为 'dark'"""
         with patch.object(DataManager, 'save_data', return_value=None):
-            self.window.on_theme_toggled(True)  # True = dark
+            self.window._on_theme_toggled(True)  # True = dark
 
         theme = self.window.data_manager.data.get('settings', {}).get('theme')
         self.assertEqual(theme, 'dark')
@@ -208,7 +208,7 @@ class TestThemeToggle(unittest.TestCase):
     def test_toggle_to_light_saves_setting(self):
         """切换到亮色主题后，settings 中 theme 应为 'light'"""
         with patch.object(DataManager, 'save_data', return_value=None):
-            self.window.on_theme_toggled(False)  # False = light
+            self.window._on_theme_toggled(False)  # False = light
 
         theme = self.window.data_manager.data.get('settings', {}).get('theme')
         self.assertEqual(theme, 'light')
@@ -251,17 +251,17 @@ class TestThemeToggle(unittest.TestCase):
     def test_theme_toggle_round_trip(self):
         """dark → light → dark 切换后 settings 中值应跟随"""
         with patch.object(DataManager, 'save_data', return_value=None):
-            self.window.on_theme_toggled(True)
+            self.window._on_theme_toggled(True)
         self.assertEqual(
             self.window.data_manager.data.get('settings', {}).get('theme'), 'dark')
 
         with patch.object(DataManager, 'save_data', return_value=None):
-            self.window.on_theme_toggled(False)
+            self.window._on_theme_toggled(False)
         self.assertEqual(
             self.window.data_manager.data.get('settings', {}).get('theme'), 'light')
 
         with patch.object(DataManager, 'save_data', return_value=None):
-            self.window.on_theme_toggled(True)
+            self.window._on_theme_toggled(True)
         self.assertEqual(
             self.window.data_manager.data.get('settings', {}).get('theme'), 'dark')
 

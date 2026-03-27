@@ -28,7 +28,7 @@ class TestSidebarAutoHide(unittest.TestCase):
              patch.object(DataManager, 'save_data_sync', return_value=None):
             self.window = MainWindow(self.timer)
         self.window.show()
-        self.window.auto_hide_sidebar_toggle.setChecked(True)
+        self.window.settings_page.auto_hide_sidebar_toggle.setChecked(True)
         self.window.sidebar.setFixedWidth(85)
 
     def tearDown(self):
@@ -88,7 +88,7 @@ class TestSidebarAutoHide(unittest.TestCase):
         self.assertTrue(self.window.sidebar_hide_timer.isActive())
 
         self.window.move(100, 100)
-        self.window.check_and_hide_sidebar()
+        self.window._check_and_hide_sidebar()
         self.assertEqual(self.window.anim_min.endValue(), 0)
 
 

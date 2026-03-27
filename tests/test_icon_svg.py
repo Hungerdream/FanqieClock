@@ -47,7 +47,7 @@ class TestNotesIcon(unittest.TestCase):
 
     def test_icon_validity(self):
         with patch.object(DataManager, 'save_data', return_value=None):
-            self.window.refresh_notes_table()
+            self.window.notes_page.refresh_table()
 
         icon_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
