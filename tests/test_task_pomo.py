@@ -57,6 +57,9 @@ class TestTaskPomoCount(unittest.TestCase):
             'created_at': '2026-03-16',
         }
         self.window.kanban_cols[key].add_task_item(task_data)
+        # Also update task_location for O(1) lookup used by update_task_pomo_count
+        row_index = self.window.kanban_cols[key].count() - 1
+        self.window.task_location[task_id] = (key, row_index)
         QApplication.processEvents()
         return task_id
 
