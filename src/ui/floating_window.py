@@ -10,7 +10,10 @@ class FloatingWindow(QWidget):
     def __init__(self, timer: PomodoroTimer):
         super().__init__()
         self.timer = timer
-        # Entrance animation - initialized but not started
+        self.old_pos = None
+        self._initialized = False
+        
+        # Entrance animation
         self.setWindowOpacity(0)
         self.fade_anim = QPropertyAnimation(self, b"windowOpacity")
         self.fade_anim.setDuration(300)
@@ -20,11 +23,16 @@ class FloatingWindow(QWidget):
 
     def show(self):
         """Override show to start fade animation after window is displayed."""
+        if not self._initialized:
+            self.init_ui()
+            self.setup_connections()
+            self._initialized = True
         super().show()
         self.fade_anim.start()
-        self.init_ui()
-        self.setup_connections()
-        self.old_pos = None
+        # Sync current state
+        self.update_timer_display(self.timer.remaining_seconds)
+        self.update_mode_display(self.timer.current_mode)
+        self.update_play_pause_button()
 
     def init_ui(self):
         self.setObjectName("FloatingWindow")
@@ -115,11 +123,6 @@ class FloatingWindow(QWidget):
         self.timer.started.connect(self.update_play_pause_button)
         self.timer.paused.connect(self.update_play_pause_button)
         self.timer.abandoned.connect(self.update_play_pause_button)
-        
-        # Initial UI sync
-        self.update_timer_display(self.timer.remaining_seconds)
-        self.update_mode_display(self.timer.current_mode)
-        self.update_play_pause_button()
 
     def update_timer_display(self, seconds):
         mins, secs = divmod(seconds, 60)
