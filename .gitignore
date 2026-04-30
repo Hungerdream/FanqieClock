@@ -41,8 +41,20 @@ data.json
 *_data.json
 test_*.json
 *.log
-*.spec
+
+# Build outputs
+FanqieClock.spec
+distrelease*
+*.zip
+*.exe
+
+# npm global packages (not part of this project)
+npm_global/
+
+# AI tool workspace
+.workbuddy/
 
 # OS
 .DS_Store
 Thumbs.db
+nul
