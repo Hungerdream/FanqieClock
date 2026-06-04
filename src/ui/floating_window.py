@@ -25,8 +25,9 @@ class FloatingWindow(QWidget):
         """Override show to start fade animation after window is displayed."""
         if not self._initialized:
             self.init_ui()
-            self.setup_connections()
             self._initialized = True
+        # 每次显示时重新连接信号，避免信号断开
+        self.setup_connections()
         super().show()
         self.fade_anim.start()
         # Sync current state
@@ -118,6 +119,18 @@ class FloatingWindow(QWidget):
         
 
     def setup_connections(self):
+        """连接信号，每次显示时调用"""
+        # 先断开所有连接，避免重复连接
+        try:
+            self.timer.tick.disconnect(self.update_timer_display)
+            self.timer.mode_changed.disconnect(self.update_mode_display)
+            self.timer.started.disconnect(self.update_play_pause_button)
+            self.timer.paused.disconnect(self.update_play_pause_button)
+            self.timer.abandoned.disconnect(self.update_play_pause_button)
+        except:
+            pass  # 如果没有连接，忽略错误
+        
+        # 重新连接
         self.timer.tick.connect(self.update_timer_display)
         self.timer.mode_changed.connect(self.update_mode_display)
         self.timer.started.connect(self.update_play_pause_button)
