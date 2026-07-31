@@ -22,8 +22,8 @@
 
 1. 克隆仓库:
    ```bash
-   git clone https://github.com/yourusername/fanqie-clock.git
-   cd fanqie-clock
+   git clone https://github.com/Hungerdream/FanqieClock.git
+   cd FanqieClock
    ```
 
 2. 创建虚拟环境 (可选但推荐):
